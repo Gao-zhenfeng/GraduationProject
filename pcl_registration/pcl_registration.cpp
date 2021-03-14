@@ -9,6 +9,7 @@
 #include <pcl/filters/filter.h>
 #include <pcl/registration/icp.h>
 #include <pcl/visualization/pcl_visualizer.h>
+#include <pcl/visualization/point_cloud_color_handlers.h>
 #include <time.h>
 #include <iostream>
 #include <boost/chrono.hpp>

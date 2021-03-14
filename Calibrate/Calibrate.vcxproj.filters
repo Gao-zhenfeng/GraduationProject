@@ -15,21 +15,8 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="main.cpp">
+    <ClCompile Include="OpenCV_CameraCalibration.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="Thinning.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <Image Include="Picture\JK.jpg">
-      <Filter>资源文件</Filter>
-    </Image>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="Thinning.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
   </ItemGroup>
 </Project>

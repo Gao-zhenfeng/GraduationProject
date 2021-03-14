@@ -8,3 +8,10 @@
 /pcl_registration/x64/Debug
 /x64/Debug
 /.vs/pcl_registration/v15
+/.vs/Graduation_Project/v16
+/Calibrate/x64
+*.props
+/CameraCablib/x64/Debug
+/Harris-Shi-TomasiDetector/x64/Debug
+/pcl_registration/x64/Release
+/x64/Release
