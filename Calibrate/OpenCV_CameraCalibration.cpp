@@ -7,10 +7,10 @@ using namespace cv;
 
 // Defining the dimensions of checkerboard
 // 定义棋盘格的尺寸
-int board_w = 9;
-int board_h = 6;
-Size board_sz = Size(board_h, board_w);//corners per row, corner per column
-
+int board_w = 6;
+int board_h = 9;
+Size board_sz = Size(board_w, board_h);//corners per row, corner per column
+//Size patternSize = Size(board_h - 1, board_w - 1);
 int main()
 {
 	// Creating vector to store vectors of 3D points for each checkerboard image
@@ -26,12 +26,12 @@ int main()
 	// objp各元素都是整数，是否应该加一个系数，如棋盘格单元的半径为25mm
 	//后面将会以 mm来定义距离
 	std::vector<cv::Point3f> objp;
-	int checkBoardRadius = 25; //棋盘格每个格子的边长
-	for (size_t i = 0; i < board_sz.width; i++) //9列， width is 9
+	double checkBoardRadius = 25; //棋盘格每个格子的边长
+	for (size_t i = 0; i < board_sz.height; i++) //9列， width is 9
 	{
-		for (size_t j = 0; j < board_sz.height; j++) // 6行，height is 6
+		for (size_t j = 0; j < board_sz.width; j++) // 6行，height is 6
 		{
-			objp.push_back(cv::Point3f((float)j, (float)i, 0) * checkBoardRadius);
+			objp.push_back(cv::Point3f(float(j * checkBoardRadius), float(i * checkBoardRadius), 0));
 		}
 	}
 
@@ -42,6 +42,8 @@ int main()
 	// Path of the folder containing checkerboard images
 	// 包含棋盘图像的文件夹的路径
 	std::string path = "./images/*.jpg";
+
+	//std::string path = "./calib_left/*.bmp";
 
 	// 使用glob函数读取所有图像的路径
 	cv::glob(path, images);
@@ -55,16 +57,14 @@ int main()
 
 	// Looping over all the images in the directory
 	// 循环读取图像
+	Size image_size;
 	for (int i = 0; i < images.size(); i++)
 	{
 		frame = cv::imread(images[i]);
+		image_size = frame.size();
 		if (frame.empty())
 		{
 			continue;
-		}
-		if (i == 40)
-		{
-			int b = 1;
 		}
 		cout << "the current image is " << i << "th" << endl;
 		cv::cvtColor(frame, gray, cv::COLOR_BGR2GRAY);
@@ -74,7 +74,7 @@ int main()
 		// If desired number of corners are found in the image then success = true
 		// 如果在图像中找到所需数量的角，则success = true
 		// opencv4以下版本，flag参数为CV_CALIB_CB_ADAPTIVE_THRESH | CV_CALIB_CB_FAST_CHECK | CV_CALIB_CB_NORMALIZE_IMAGE
-		success = cv::findChessboardCorners(gray, board_sz, corner_pts, CALIB_CB_ADAPTIVE_THRESH | CALIB_CB_FAST_CHECK | CALIB_CB_NORMALIZE_IMAGE);
+		success = cv::findChessboardCorners(gray, Size(board_w, board_h), corner_pts, CALIB_CB_ADAPTIVE_THRESH | CALIB_CB_FAST_CHECK | CALIB_CB_NORMALIZE_IMAGE);
 
 		/*
 		 * If desired number of corner are detected,
@@ -99,8 +99,8 @@ int main()
 			imgpoints.push_back(corner_pts);
 		}
 
-		cv::imshow("Image", frame);
-		cv::waitKey(0);
+		//cv::imshow("chessboard detection", frame);
+		//cv::waitKey(0);
 	}
 
 	cv::destroyAllWindows();
@@ -114,7 +114,16 @@ int main()
 	 * detected corners (imgpoints)
 	*/
 	// 通过传递已知3D点（objpoints）的值和检测到的角点（imgpoints）的相应像素坐标来执行相机校准
-	cv::calibrateCamera(objpoints, imgpoints, cv::Size(gray.rows, gray.cols), cameraMatrix, distCoeffs, R, T);
+	cv::calibrateCamera(
+		objpoints,
+		imgpoints,
+		image_size,
+		cameraMatrix,
+		distCoeffs,
+		R,
+		T,
+		cv::CALIB_ZERO_TANGENT_DIST | cv::CALIB_FIX_PRINCIPAL_POINT
+	);
 
 	// 内参矩阵
 	std::cout << "cameraMatrix :\n" << cameraMatrix << std::endl;
@@ -125,5 +134,42 @@ int main()
 	// tvecs
 	std::cout << "Translation vector :\n" << T << std::endl;
 
+	cv::Mat map1, map2;
+	cv::initUndistortRectifyMap(
+		cameraMatrix,
+		distCoeffs,
+		cv::Matx33f::eye(),
+		cameraMatrix,
+		cv::Size(gray.rows, gray.cols),
+		CV_32FC1,
+		map1,
+		map2
+	);
+	for (int i = 0; i < images.size(); i++)
+	{
+		Mat srcimage = cv::imread(images[i]);
+		Mat image0;
+		if (frame.empty())
+		{
+			continue;
+		}
+		cv::remap(
+			srcimage,
+			image0,
+			map1,
+			map2,
+			cv::INTER_LINEAR,
+			cv::BORDER_CONSTANT,
+			cv::Scalar()
+		);
+		//cv::imshow("Undistorted", image0);
+		//waitKey(0);
+	}
+
+	FileStorage fs{ "calibdata.yml", FileStorage::WRITE };
+
+	fs << "cameraMatrix" << cameraMatrix << "distCoeffs" << distCoeffs;
+	fs << "rotationMatrix" << R << "translationMatrix" << T;
+	fs.release();
 	return 0;
 }

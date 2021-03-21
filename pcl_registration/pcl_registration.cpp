@@ -1,4 +1,6 @@
-﻿#include <pcl/registration/ia_ransac.h>
+﻿#define _SILENCE_ALL_CXX17_DEPRECATION_WARNINGS
+
+#include <pcl/registration/ia_ransac.h>
 #include <pcl/point_types.h>
 #include <pcl/point_cloud.h>
 #include <pcl/features/normal_3d.h>

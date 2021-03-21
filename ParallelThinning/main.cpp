@@ -34,8 +34,8 @@ int main(int argc, char** argv)
 	adaptiveThreshold(dst, dst, 1, ADAPTIVE_THRESH_GAUSSIAN_C, THRESH_BINARY, 7, 0);
 	medianBlur(dst, dst, 5);
 
-	namedWindow("自适应二值化后： ", WINDOW_NORMAL);
-	imshow("自适应二值化后： ", dst);
+	//namedWindow("自适应二值化后： ", WINDOW_NORMAL);
+	//imshow("自适应二值化后： ", dst);
 
 	Mat thinsrc;
 	thinsrc = thinImage(dst);

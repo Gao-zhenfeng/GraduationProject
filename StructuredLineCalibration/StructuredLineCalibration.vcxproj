@@ -21,8 +21,8 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{2bab0745-d042-40d3-b526-be0c8c4499d3}</ProjectGuid>
-    <RootNamespace>ParallelThinning</RootNamespace>
+    <ProjectGuid>{d142418a-74a3-4141-ba79-1350cd7be94e}</ProjectGuid>
+    <RootNamespace>StructuredLineCalibration</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -141,14 +141,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="main.cpp" />
-    <ClCompile Include="Thinning.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <Image Include="Picture\JK.jpg" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="Thinning.h" />
+    <ClCompile Include="StructuredLineCalibration.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
