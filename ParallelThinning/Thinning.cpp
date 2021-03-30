@@ -1,5 +1,20 @@
 ﻿#include "Thinning.h"
 
+LineData::LineData()
+{
+	this->m_label = 0;
+	this->m_k = 0.0;
+	this->m_b = 0.0;
+}
+
+LineData::LineData(std::vector<Point> points, int label, float k, float b)
+{
+	this->m_points = points;
+	this->m_label = label;
+	this->m_k = k;
+	this->m_b = b;
+}
+
 /**
 * @brief 对输入图像进行细化,骨骼化
 * @param src为输入图像,用cvThreshold函数处理过的8位灰度图像格式，元素中只有0与1,1代表有元素，0代表为空白
@@ -224,6 +239,7 @@ std::vector<cv::KeyPoint> getPoints(const cv::Mat& thinSrc, unsigned int raudis,
 	return points;
 }
 
+// 该算法可以再改进，eraser 向量的一个元素非常耗时间
 std::vector<cv::KeyPoint> getKeyPoints(std::vector<cv::KeyPoint> InputKeyPoints, int radius)
 {
 	std::vector<cv::KeyPoint> OutputKeyPoints;
@@ -270,4 +286,215 @@ std::vector<cv::KeyPoint> getKeyPoints(std::vector<cv::KeyPoint> InputKeyPoints,
 		OutputKeyPoints.push_back(KeyPoint{ meanPoint, 5 });
 	}
 	return OutputKeyPoints;
+}
+
+/*
+返回p1 p2 所表示线段的所有点集
+算法步骤：
+
+　　1.分别计算两点之间的横坐标和纵坐标差值：
+
+   　　 deltaY = abs(y1 - y2);
+
+	　　deltaX = abs(x1 - x2);
+
+	2.设置循环变量范围，如果deltaY < deltaX,则自变量范围是[x1,x2](假设x1<x2)，反之自变量范围是[y1,y2];
+
+	3. 当deltaY < deltaX时，选择A、B中任意一点做起始点，分别计算当横坐标自变量为i、纵坐标为j时，根据直线
+	方程得到的截距Tmpb和b之间的差值，差值最小时对应的j即为纵坐标位置
+*/
+std::vector<Point> getLineAllPoint(Point2d p1, Point2d p2)
+{
+	double k = (p2.y - p1.y) / (p2.x - p1.x); // 斜率
+	double b = (p1.y * p2.x - p1.x * p2.y) / (p2.x - p1.x); // 截距
+	double deltaX = abs(p2.x - p1.x);
+	double deltaY = abs(p2.y - p1.y);
+	std::vector<Point> pointOnLine;
+	if (deltaY < deltaX)
+	{
+		// 保证p1.x 小于 p2.x, 如果p1.x > p2.x ，交换数据
+		if (p1.x >= p2.x)
+		{
+			double tempX = p1.x;
+			double tempY = p1.y;
+			p1.x = p2.x; p1.y = p2.y;
+			p2.x = tempX; p2.y = tempY;
+		}
+		for (size_t i = p1.x; i < p2.x; i++)
+		{
+			static double y = p1.y;
+			double yBegin = y - 2;	//[yBegin, yEnd] 为遍历范围
+			double yEnd = y + 2;
+			double Y = 0;
+			double X = 0;
+			double Min = 1000;
+
+			for (size_t j = yBegin; j <= yEnd; j++)
+			{
+				double bTemp = j - k * i;
+				double delta = abs(b - bTemp);
+				if (delta < Min)
+				{
+					Min = delta;
+					Y = j;
+					X = i;
+				}
+			}
+			if (X != 0 && Y != 0)
+			{
+				pointOnLine.push_back(Point2d{ X,Y });
+				y = Y; //更新y, 下次判断（x1 +1, y)
+			}
+		}
+	}
+	else
+	{
+		if (p1.y >= p2.y)
+		{
+			double tempX = p1.x;
+			double tempY = p1.y;
+			p1.x = p2.x; p1.y = p2.y;
+			p2.x = tempX; p2.y = tempY;
+		}
+		for (size_t j = p1.y; j < p2.y; j++)
+		{
+			static double x = p1.x;
+			double xBegin = x - 2;	//[yBegin, yEnd] 为遍历范围
+			double xEnd = x + 2;
+			double Y = 0;
+			double X = 0;
+			double Min = 1000;
+
+			for (size_t i = xBegin; i <= xEnd; i++)
+			{
+				double bTemp = j - k * i;
+				double delta = abs(b - bTemp);
+				if (delta < Min)
+				{
+					Min = delta;
+					Y = j;
+					X = i;
+				}
+			}
+			if (X != 0 && Y != 0)
+			{
+				pointOnLine.push_back(Point2d{ X,Y });
+				x = Y; //更新y, 下次判断（x1 +1, y)
+			}
+		}
+	}
+	return pointOnLine;
+}
+
+float getK(Mat src, std::vector<Vec4i> linesP, int threshold, int mimLineLength, int maxLineGap)
+{
+	Mat cdstP; float meanK;
+	std::vector<float> vectorK;
+	HoughLinesP(src, linesP, 1, CV_PI / 180, threshold, mimLineLength, maxLineGap); // runs the actual detection
+	cvtColor(src, cdstP, COLOR_GRAY2BGR);
+	for (size_t i = 0; i < linesP.size(); i++)
+	{
+		Vec4i l = linesP[i];
+		circle(cdstP, Point(l[0], l[1]), 5, Scalar(0, 255, 0), -1);
+		circle(cdstP, Point(l[2], l[3]), 5, Scalar(0, 255, 0), -1);
+		line(cdstP, Point(l[0], l[1]), Point(l[2], l[3]), Scalar(0, 0, 255), 1, LINE_AA);
+		if ((l[2] - l[0]) != 0)
+		{
+			float k = (float(l[3]) - l[1]) / (l[2] - l[0]);
+			vectorK.push_back(k);
+		}
+	}
+	sort(vectorK.begin(), vectorK.end());
+	for (size_t i = 0; i < vectorK.size(); i++)
+	{
+		cout << vectorK[i] << endl;
+	}
+	size_t end = vectorK.size();
+	meanK = (vectorK[end - 3] + vectorK[end - 1] + vectorK[end - 2]) / 3;
+	imshow("搜寻直线", cdstP);
+	return meanK;
+}
+
+bool fitPoints(LineData& pts)
+{
+	int nPoints = pts.m_points.size();
+	if (nPoints < 2) {
+		// Fail: infinitely many lines passing through this single point
+		return false;
+	}
+	double sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+	for (int i = 0; i < nPoints; i++) {
+		sumX += pts.m_points[i].x;
+		sumY += pts.m_points[i].y;
+		sumXY += pts.m_points[i].x * pts.m_points[i].y;
+		sumX2 += pts.m_points[i].x * pts.m_points[i].x;
+	}
+	double xMean = sumX / nPoints;
+	double yMean = sumY / nPoints;
+	double denominator = sumX2 - sumX * xMean;
+	// You can tune the eps (1e-7) below for your specific task
+	if (std::fabs(denominator) < 1e-7) {
+		// Fail: it seems a vertical line
+		return false;
+	}
+	pts.m_k = (sumXY - sumX * yMean) / denominator;
+	pts.m_b = yMean - pts.m_k * xMean;
+	return true;
+}
+
+std::vector<LineData> getLineData(std::vector<KeyPoint>keyPoints, float k)
+{
+	std::vector<LineData> lines;
+	Mat m = Mat::zeros(keyPoints.size(), 3, CV_32S);
+	const size_t ksize = keyPoints.size();
+	std::vector<int> flag;
+	for (size_t i = 0; i < ksize; i++)
+	{
+		flag.push_back(0);
+	}
+	int label = 1;
+	// 对各点进行分类
+	for (size_t i = 0; i < ksize; i++)
+	{
+		LineData l;// 表示某条光条
+		// 先判断该点是否被分类 未分类时为0
+		if (flag[i] == 0)
+		{
+			flag[i] = label; //标记该点
+			l.m_points.push_back(keyPoints[i].pt);
+			l.m_label = label;
+			for (size_t j = 0; j < ksize; j++)
+			{
+				if (j != i && flag[j] == 0)
+				{
+					// k1 表示pt(i) pt(j) 两点组成的斜率
+					float k1 = 1.0 * (float(keyPoints[j].pt.y) - float(keyPoints[i].pt.y)) / (keyPoints[j].pt.x - keyPoints[i].pt.x);
+					if (k1 < k + 2 && k1 > k - 2)
+					{
+						flag[j] = label;
+						l.m_points.push_back(keyPoints[j].pt);
+					}
+				}
+			}
+			label++;
+			fitPoints(l);
+			lines.push_back(l);
+		}
+	}
+
+	// 根据 b 值对各直线排序，对label进行更新， b 的值最小label为1，以此递增
+	std::vector<float> vlabel;
+	for (size_t i = 0; i < lines.size(); i++)
+	{
+		vlabel.push_back(lines[i].m_b);
+	}
+	sort(vlabel.begin(), vlabel.end());
+	for (size_t i = 0; i < lines.size(); i++)
+	{
+		std::vector<float>::iterator iter;
+		iter = std::find(vlabel.begin(), vlabel.end(), lines[i].m_b);
+		int pos = iter - vlabel.begin();
+		lines[i].m_label = pos;
+	}
+	return lines;
 }

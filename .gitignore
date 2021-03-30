@@ -17,3 +17,7 @@
 /x64/Release
 /ParallelThinning/x64/Release
 /StructuredLineCalibration/x64
+/CameraCablib/x64/Release/CameraCalib.tlog
+/CameraCablib/x64/Release
+/Harris-Shi-TomasiDetector/x64/Release/Harris-S.aa0a0b71.tlog
+/Harris-Shi-TomasiDetector/x64/Release

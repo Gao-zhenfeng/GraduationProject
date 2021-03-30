@@ -1,0 +1,60 @@
+clear ;
+close all;
+%%
+
+filename = '.\Result.txt';
+[xf,yf,h,s,x,y,z]=textread(filename,'%n%n%n%n%n%n%n',67);
+figure;
+plot(xf, yf, 'ro');
+title('光条交点');
+xlabel('u / pixel');
+ylabel('v / pixel');
+
+tempxf = xf;
+tempyf = yf;
+
+figure;
+xyc = [xf, yf, zeros(length(xf), 1)];
+
+label = 1;
+for i = 1 : length(xf)
+    % 先判断该点是否被标记，如果未被标记，开始搜索
+    if(xyc(i, 3) == 0)
+        xyc(i, 3) = label; % 标记该点，表明已被分组
+        classX = xyc(i, 1);
+        classY = xyc(i, 2);
+        for j = 1 : length(xf)
+            if(j ~= i)
+                k = (xyc(j, 2) - xyc(i, 2)) / (xyc(j, 1) - xyc(i, 1));
+                if(k < 20 && k > 8)
+                    xyc(j, 3) = label;
+                    classX = [classX; xyc(j, 1)];
+                end
+            end
+        end
+        label = label + 1;
+    end
+    
+end
+% figure;
+% scatter3(x,y,z,'.');
+% hold on;
+% 
+% planeData=[x,y,z]; 
+% % 协方差矩阵的SVD变换中，最小奇异值对应的奇异向量就是平面的方向
+% xyz0=mean(planeData,1);
+% centeredPlane=bsxfun(@minus,planeData,xyz0);
+% [U,S,V]=svd(centeredPlane);
+%  
+% a=V(1,3);
+% b=V(2,3);
+% c=V(3,3);
+% d=-dot([a b c],xyz0);
+%  
+% % 图形绘制
+% xfit = min(x):0.1:max(x);
+% yfit = min(y):0.1:max(y);
+% [XFIT,YFIT]= meshgrid (xfit,yfit);
+% ZFIT = -(d + a * XFIT + b * YFIT)/c;
+% mesh(XFIT,YFIT,ZFIT);
+
