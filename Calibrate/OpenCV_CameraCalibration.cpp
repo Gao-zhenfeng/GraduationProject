@@ -99,8 +99,8 @@ int main()
 			imgpoints.push_back(corner_pts);
 		}
 
-		//cv::imshow("chessboard detection", frame);
-		//cv::waitKey(0);
+		cv::imshow("chessboard detection", frame);
+		cv::waitKey(0);
 	}
 
 	cv::destroyAllWindows();

@@ -14,19 +14,6 @@ LineData::LineData(std::vector<Point> points, int label, float k, float b)
 	this->m_k = k;
 	this->m_b = b;
 }
-// 细化图像画到原图上
-Mat drawCornerOnImage(Mat image, const Mat& binary)
-{
-	cvtColor(image, image, COLOR_GRAY2BGR);
-	Mat_<uchar>::const_iterator it = binary.begin<uchar>();
-	Mat_<uchar>::const_iterator itd = binary.end<uchar>();
-	for (int i = 0; it != itd; it++, i++)
-	{
-		if (*it)
-			circle(image, Point(i % image.cols, i / image.cols), 1, Scalar(0, 0, 255), -1);
-	}
-	return image;
-}
 
 /**
 * @brief 对输入图像进行细化,骨骼化

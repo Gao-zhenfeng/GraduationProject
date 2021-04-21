@@ -1,12 +1,12 @@
-clear all;
+clear;
 close all;
 filename = 'E:\课程资料\毕设\Program\Graduation_Project\ParallelThinning\k&&b.txt';
 [k, b,x1, y1, x2, y2] = textread(filename, '%f%f%f%f%f%f');
 K = normalize(k,'zscore', 'std') * 100;
 B = normalize(b, 'zscore', 'std')* 100;
 X = [K, B];
-epsilon = 0.25;
-minpts = 1;
+epsilon = 5;
+minpts  = 2;
 idx = dbscan(X, epsilon, minpts,'Distance','squaredeuclidean');
 
 figure;
@@ -34,7 +34,7 @@ for i = 1: max(idx)
     plotXY = sortrows([plotX, plotY]);
     B = [B; [plotXY, ones(length(plotX), 1) * P]];
     plot(plotXY(:, 1), plotXY(:, 2));
-    title("未经二次筛选");
+    title("第一次筛选");
     hold on;
 end
 
@@ -42,8 +42,8 @@ end
 B(:, 3) = normalize(B(:, 3) ,'zscore', 'std') * 100;
 B(:, 4) = normalize(B(:, 4) ,'zscore', 'std') * 100;
 
-epsilon2 = 5;
-minpts2 = 3; % 至少为2
+epsilon2 = 3;
+minpts2 = 2; % 至少为2
 idx2 = dbscan(B(:, 3:4), epsilon2, minpts2,'Distance','squaredeuclidean');
 
 figure;

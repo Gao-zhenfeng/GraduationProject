@@ -59,7 +59,7 @@ void on_threshold1(int bar_val, void* userdata)
 		{
 			// 需要对数据归一化
 			float k = (float(l[3]) - l[1]) / (l[2] - l[0]);
-			float b = (float(l[1]) * l[2] - l[0] * l[3]) / (l[2] - l[0]) / 1.0;
+			float b = (float(l[1]) * l[2] - l[0] * l[3]) / (l[2] - l[0]) / 1.0f;
 			cout << " k: " << k << "  " << "b: " << b << endl;
 			fout << k << "  " << b << "  " << l[0] << "  " << l[1] << "  " << l[2] << "  " << l[3] << endl;
 			//lineData.push_back(Vec6d{ double(l[0]), double(l[1]), double(l[2]), double(l[3]), k, b });
@@ -204,35 +204,36 @@ void on_threshold3(int bar_val, void* userdata)
 
 int main(int argc, char** argv)
 {
-	Mat src = imread("../Picture/I5.bmp", CV_8UC1);
+	Mat src = imread("../Picture/I6.bmp", CV_8UC1);
 	Rect r1{ 307,188,638,684 };
-	Mat mask = Mat::zeros(src.size(), CV_8UC1);
+	//Mat mask = Mat::zeros(src.size(), CV_8UC1);
 	if (src.empty())
 	{
 		cout << "image is empty. " << endl;
 		return -1;
 	}
-	//namedWindow("源图像", WINDOW_NORMAL);
-	//imshow("源图像", src);
-	mask(r1).setTo(255);
+	namedWindow("源图像", WINDOW_NORMAL);
+	imshow("源图像", src);
+	/*mask(r1).setTo(255);
 	Mat maskSrc;
-	src.copyTo(maskSrc, mask);
+	src.copyTo(maskSrc, mask);*/
 	Mat dst;
-	medianBlur(maskSrc, dst, 3);
+	medianBlur(src, dst, 3);
 	adaptiveThreshold(dst, dst, 1, ADAPTIVE_THRESH_GAUSSIAN_C, THRESH_BINARY, 7, 0);
 	medianBlur(dst, dst, 5);
 
-	//namedWindow("自适应二值化后： ", WINDOW_NORMAL);
-	//imshow("自适应二值化后： ", dst * 255);
+	namedWindow("自适应二值化后： ", WINDOW_NORMAL);
+	imshow("自适应二值化后： ", dst * 255);
 
 	Mat thinsrc;
 	thinsrc = thinImage(dst);
 	filterOver(thinsrc);
 	Mat thinImage = thinsrc * 255;
 
+	//Mat skeletonOnImage = drawCornerOnImage(src, thinsrc);
 	//绘制细化后图像
-	//namedWindow("细化后： ", WINDOW_NORMAL);
-	//imshow("细化后： ", thinImage);
+	namedWindow("细化后： ", WINDOW_NORMAL);
+	imshow("细化后： ", thinImage);
 
 	std::string winname = "Detected Lines (in red) - Probabilistic Line Transform";
 	//namedWindow(winname, WINDOW_NORMAL);
@@ -249,7 +250,7 @@ int main(int argc, char** argv)
 
 	//绘制keyPoints
 	Mat keyPointsImage;
-	drawKeypoints(src, keyPoints, keyPointsImage, Scalar(0, 0, 255));
+	drawKeypoints(thinImage, keyPoints, keyPointsImage, Scalar(0, 0, 255));
 	namedWindow("keyPoints", WINDOW_NORMAL);
 	imshow("keyPoints", keyPointsImage);
 
@@ -262,26 +263,26 @@ int main(int argc, char** argv)
 	}
 	fout.close();
 
-	float k = getK(thinImage, linesP, g_threshold, g_mimLineLength, g_maxLineGap);
-	std::vector<LineData> lines = getLineData(keyPoints, k);
+	//float k = getK(thinImage, linesP, g_threshold, g_mimLineLength, g_maxLineGap);
+	//std::vector<LineData> lines = getLineData(keyPoints, k);
 
-	Mat rgbSRC;
-	cvtColor(src, rgbSRC, COLOR_GRAY2BGR);
+	//Mat rgbSRC;
+	//cvtColor(src, rgbSRC, COLOR_GRAY2BGR);
 
-	for (size_t i = 0; i < lines.size(); i++)
-	{
-		for (size_t j = 0; j < lines[i].m_points.size(); j++)
-		{
-			String s = "(" + std::to_string(lines[i].m_label) + ", " + std::to_string(j) + ")";
-			cout << lines[i].m_points[j].x << "  " << lines[i].m_points[j].y << "  "
-				<< lines[i].m_k << "  " << lines[i].m_b << "  " << lines[i].m_label << endl;
+	//for (size_t i = 0; i < lines.size(); i++)
+	//{
+	//	for (size_t j = 0; j < lines[i].m_points.size(); j++)
+	//	{
+	//		String s = "(" + std::to_string(lines[i].m_label) + ", " + std::to_string(j) + ")";
+	//		cout << lines[i].m_points[j].x << "  " << lines[i].m_points[j].y << "  "
+	//			<< lines[i].m_k << "  " << lines[i].m_b << "  " << lines[i].m_label << endl;
 
-			circle(rgbSRC, lines[i].m_points[j], 3, Scalar(255, 0, 0), -1);
-			putText(rgbSRC, s, lines[i].m_points[j], FONT_HERSHEY_SIMPLEX, 0.6, Scalar(0, 0, 255), 1, LINE_AA);//在图片上写文字
-		}
-	}
-	namedWindow("光条编码", WINDOW_NORMAL);
-	imshow("光条编码", rgbSRC);
+	//		circle(rgbSRC, lines[i].m_points[j], 3, Scalar(255, 0, 0), -1);
+	//		putText(rgbSRC, s, lines[i].m_points[j], FONT_HERSHEY_SIMPLEX, 0.6, Scalar(0, 0, 255), 1, LINE_AA);//在图片上写文字
+	//	}
+	//}
+	//namedWindow("光条编码", WINDOW_NORMAL);
+	//imshow("光条编码", rgbSRC);
 
 	waitKey(0);
 	return 0;
