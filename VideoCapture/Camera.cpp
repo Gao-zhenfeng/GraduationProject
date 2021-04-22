@@ -36,8 +36,11 @@ int  Mycamera::connectCamera(int id)
 		//设备更新成功接收命令的返回值为0，返回值不为0则为异常
 		return -1;
 	if (m_stDevList.nDeviceNum == 0)
+	{
 		//未找到任何相机
+		cout << "未找到任何相机" << endl;
 		return 2;
+	}
 	for (unsigned int i = 0; i < m_stDevList.nDeviceNum; i++)
 	{
 		MV_CC_DEVICE_INFO* pDeviceInfo = m_stDevList.pDeviceInfo[i];
@@ -51,16 +54,8 @@ int  Mycamera::connectCamera(int id)
 			std::cout << "连接成功" << endl;
 			break;
 		}
-		else
-		{
-			continue;
-		}
 	}
-	if (m_Device == NULL)
-	{
-		//未找到指定名称的相机
-		return 3;
-	}
+
 	temp = MV_CC_CreateHandle(&m_hDevHandle, m_Device);
 	if (temp != 0)
 		return -1;
@@ -112,20 +107,21 @@ int Mycamera::ReadBuffer(Mat& image)
 	MVCC_INTVALUE stParam;
 	memset(&stParam, 0, sizeof(MVCC_INTVALUE));
 	int temp = MV_CC_GetIntValue(m_hDevHandle, "PayloadSize", &stParam);
-	if (temp != 0)
+	if (temp != MV_OK)
 	{
 		return -1;
 	}
 	nRecvBufSize = stParam.nCurValue;
-	m_pBufForDriver = (unsigned char*)malloc(nRecvBufSize);
+	unsigned char* m_pBufForDriver = (unsigned char*)malloc(nRecvBufSize);
 	MV_FRAME_OUT_INFO_EX stImageInfo = { 0 };
 	int tempValue = MV_CC_GetOneFrameTimeout(m_hDevHandle, m_pBufForDriver, nRecvBufSize, &stImageInfo, 700);
-	if (tempValue != 0)
+	if (tempValue != MV_OK)
 	{
+		// 获取一帧图像失败
 		return -1;
 	}
-	m_nBufSizeForSaveImage = stImageInfo.nWidth * stImageInfo.nHeight * 3 + 2048;
-	m_pBufForSaveImage = (unsigned char*)malloc(m_nBufSizeForSaveImage);
+	unsigned int m_nBufSizeForSaveImage = stImageInfo.nWidth * stImageInfo.nHeight * 3 + 2048;
+	unsigned char* m_pBufForSaveImage = (unsigned char*)malloc(m_nBufSizeForSaveImage);
 
 	bool isMono;//判断是否为黑白图像
 	switch (stImageInfo.enPixelType)

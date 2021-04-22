@@ -17,7 +17,7 @@ public:
 	static int EnumDevices(MV_CC_DEVICE_INFO_LIST* pstDevList);
 
 	// ch:连接相机
-	int connectCamera(int id);
+	int connectCamera(int id = 0);
 
 	//设置是否为触发模式
 	//int setTriggerMode(unsigned int TriggerModeNum);
@@ -40,9 +40,9 @@ private:
 	void* m_hDevHandle;
 
 public:
-	unsigned char* m_pBufForSaveImage;         // 用于保存图像的缓存
-	unsigned int    m_nBufSizeForSaveImage;
+	//unsigned char* m_pBufForSaveImage;         // 用于保存图像的缓存
+	//unsigned int    m_nBufSizeForSaveImage;
 
-	unsigned char* m_pBufForDriver;            // 用于从驱动获取图像的缓存
-	unsigned int    m_nBufSizeForDriver;
+	//unsigned char* m_pBufForDriver;            // 用于从驱动获取图像的缓存
+	//unsigned int    m_nBufSizeForDriver;
 };

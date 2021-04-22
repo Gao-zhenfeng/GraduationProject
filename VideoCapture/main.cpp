@@ -9,14 +9,14 @@ using namespace cv;
 int main()
 {
 	Mycamera Hikvision;
-	Hikvision.connectCamera(0);
+	Hikvision.connectCamera();
 	Hikvision.startCamera();
 	while (1)
 	{
 		Mat frame;
 		if (Hikvision.ReadBuffer(frame) == 0)
 			imshow("HikVision", frame);
-		char c = waitKey(1);
+		char c = waitKey(10);
 		if (c == 27) break;
 	}
 
