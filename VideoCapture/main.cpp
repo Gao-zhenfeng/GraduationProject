@@ -17,7 +17,7 @@ int main()
 		if (Hikvision.ReadBuffer(frame) == 0)
 			imshow("HikVision", frame);
 		char c = waitKey(10);
-		if (c == 27) break;
+		if (c == 27)  Hikvision.stopCamera();
 	}
 
 	return 0;
