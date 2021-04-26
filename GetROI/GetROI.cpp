@@ -136,8 +136,7 @@ int main(int argc, char** argv)
 	double time1 = static_cast<double>(getTickCount());
 
 	Mat src = imread("../Picture/I8.bmp", CV_8UC1);
-	//GaussianBlur(src, src, Size(3, 3), 0);
-	//imshow("源图", src);
+
 	Mat topHatImage;
 	Mat element = getStructuringElement(MORPH_ELLIPSE, Size(17, 17));
 	morphologyEx(src, topHatImage, MORPH_TOPHAT, element);
@@ -147,8 +146,8 @@ int main(int argc, char** argv)
 	adaptiveThreshold(topHatImage, dst, 255, ADAPTIVE_THRESH_MEAN_C, THRESH_BINARY, 7, 0);
 	//imshow("阈值分割", dst);
 	RemoveSmallRegion(dst, dst, 50, 1, 0);
-	imshow("remove small region", dst);
-	//imwrite("region.bmp", dst);
+	//imshow("remove small region", dst);
+
 	Mat labels, stats, centroids;
 	int i;
 	size_t nccomps = connectedComponentsWithStats(dst, labels, stats, centroids);
@@ -158,9 +157,9 @@ int main(int argc, char** argv)
 	colors[0] = Vec3b(0, 0, 0); // background pixels remain black.
 	for (i = 1; i < nccomps; i++)
 	{
-		cout << "连通域大小" << stats.at<int>(i, cv::CC_STAT_AREA) << endl;
+		//cout << "连通域大小" << stats.at<int>(i, cv::CC_STAT_AREA) << endl;
 		colors[i] = Vec3b(255, 255, 255);
-		cout << (int)colors[i][0] << " " << (int)colors[i][1] << " " << (int)colors[i][2] << endl;
+
 		if (stats.at<int>(i, cv::CC_STAT_AREA) < 20000)
 		{
 			colors[i] = Vec3b(0, 0, 0); // small regions are painted with black too.
@@ -176,13 +175,13 @@ int main(int argc, char** argv)
 			img_color.at<cv::Vec3b>(y, x) = colors[label];
 		}
 	}
-	cv::imshow("Labeled map", img_color);
+	//cv::imshow("Labeled map", img_color);
 
 	Mat img_binary;
 	cvtColor(img_color, img_binary, COLOR_RGB2GRAY);
 	//imwrite("region.bmp", img_binary);
 	double time2 = (static_cast<double>(getTickCount()) - time1) / getTickFrequency();
-	cout << time2 << "ms" << endl;
+	cout << time2 << "s" << endl;
 	waitKey(0);
 	return 0;
 }

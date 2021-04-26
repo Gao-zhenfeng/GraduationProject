@@ -280,7 +280,7 @@ int main(int argc, char** argv)
 	imshow("光条编码", rgbSRC);
 	//imwrite("labeled.bmp", rgbSRC);
 	double time2 = (static_cast<double>(getTickCount()) - time1) / getTickFrequency();
-	cout << time2 << "ms" << endl;
+	cout << time2 << "s" << endl;
 	waitKey(0);
 	return 0;
 }
