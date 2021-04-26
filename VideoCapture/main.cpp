@@ -18,6 +18,7 @@ int main()
 			imshow("HikVision", frame);
 		char c = waitKey(10);
 		if (c == 27)  Hikvision.stopCamera();
+		frame.release();
 	}
 
 	return 0;

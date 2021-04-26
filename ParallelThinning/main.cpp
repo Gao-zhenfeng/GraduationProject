@@ -6,7 +6,6 @@
 #include "opencv2/core.hpp"
 #include "opencv2/imgproc.hpp"
 #include "opencv2/highgui.hpp"
-#include "opencv2/opencv.hpp"
 #include "Thinning.h"
 #include "dbscan.h"
 
@@ -204,8 +203,9 @@ void on_threshold3(int bar_val, void* userdata)
 
 int main(int argc, char** argv)
 {
-	Mat src = imread("../Picture/I6.bmp", CV_8UC1);
-	Rect r1{ 307,188,638,684 };
+	double time1 = static_cast<double>(getTickCount());
+	Mat src = imread("region.bmp", CV_8UC1);
+	//Rect r1{ 307,188,638,684 };
 	//Mat mask = Mat::zeros(src.size(), CV_8UC1);
 	if (src.empty())
 	{
@@ -217,35 +217,30 @@ int main(int argc, char** argv)
 	/*mask(r1).setTo(255);
 	Mat maskSrc;
 	src.copyTo(maskSrc, mask);*/
-	Mat dst;
-	medianBlur(src, dst, 3);
-	adaptiveThreshold(dst, dst, 1, ADAPTIVE_THRESH_GAUSSIAN_C, THRESH_BINARY, 7, 0);
-	medianBlur(dst, dst, 5);
+	Mat dst = src / 255;
+	//medianBlur(src, dst, 3);
+	//adaptiveThreshold(dst, dst, 1, ADAPTIVE_THRESH_GAUSSIAN_C, THRESH_BINARY, 7, 0);
+	//medianBlur(dst, dst, 5);
 
-	namedWindow("自适应二值化后： ", WINDOW_NORMAL);
-	imshow("自适应二值化后： ", dst * 255);
+	//namedWindow("自适应二值化后： ", WINDOW_NORMAL);
+	//imshow("自适应二值化后： ", dst * 255);
 
 	Mat thinsrc;
 	thinsrc = thinImage(dst);
 	filterOver(thinsrc);
 	Mat thinImage = thinsrc * 255;
 
-	//Mat skeletonOnImage = drawCornerOnImage(src, thinsrc);
-	//绘制细化后图像
 	namedWindow("细化后： ", WINDOW_NORMAL);
 	imshow("细化后： ", thinImage);
 
-	std::string winname = "Detected Lines (in red) - Probabilistic Line Transform";
+	//std::string winname = "Detected Lines (in red) - Probabilistic Line Transform";
 	//namedWindow(winname, WINDOW_NORMAL);
 	// Probabilistic Line Transform
 	std::vector<Vec4i> linesP;
 	//dst = dst * 255;
-	HoughLine hL{ winname, thinImage, linesP };
-	//createTrackbar("threshold", winname, &g_threshold, 400, on_threshold1, &hL);
-	//createTrackbar("minLineLength ", winname, &g_mimLineLength, 400, on_threshold2, &hL);
-	//createTrackbar("maxLineGap", winname, &g_maxLineGap, 400, on_threshold2, &hL);
+	//HoughLine hL{ winname, thinImage, linesP };
 
-	std::vector<KeyPoint> roughKeyPoints = getPoints(thinsrc, 5, 7, 0);
+	std::vector<KeyPoint> roughKeyPoints = getPoints(thinsrc, 7, 7, 0);
 	std::vector<KeyPoint>keyPoints = getKeyPoints(roughKeyPoints, 15);
 
 	//绘制keyPoints
@@ -254,36 +249,38 @@ int main(int argc, char** argv)
 	namedWindow("keyPoints", WINDOW_NORMAL);
 	imshow("keyPoints", keyPointsImage);
 
-	std::filesystem::path p{ "keypoint.txt" };
-	std::ofstream fout{ p };
+	//std::filesystem::path p{ "keypoint.txt" };
+	//std::ofstream fout{ p };
 
-	for (size_t i = 0; i < keyPoints.size(); i++)
-	{
-		fout << keyPoints[i].pt.x << "  " << keyPoints[i].pt.y << endl;
-	}
-	fout.close();
+	//for (size_t i = 0; i < keyPoints.size(); i++)
+	//{
+	//	fout << keyPoints[i].pt.x << "  " << keyPoints[i].pt.y << endl;
+	//}
+	//fout.close();
 
 	//float k = getK(thinImage, linesP, g_threshold, g_mimLineLength, g_maxLineGap);
-	//std::vector<LineData> lines = getLineData(keyPoints, k);
+	std::vector<LineData> lines = getLineData(keyPoints, 20);
 
-	//Mat rgbSRC;
-	//cvtColor(src, rgbSRC, COLOR_GRAY2BGR);
+	Mat rgbSRC;
+	cvtColor(src, rgbSRC, COLOR_GRAY2BGR);
 
-	//for (size_t i = 0; i < lines.size(); i++)
-	//{
-	//	for (size_t j = 0; j < lines[i].m_points.size(); j++)
-	//	{
-	//		String s = "(" + std::to_string(lines[i].m_label) + ", " + std::to_string(j) + ")";
-	//		cout << lines[i].m_points[j].x << "  " << lines[i].m_points[j].y << "  "
-	//			<< lines[i].m_k << "  " << lines[i].m_b << "  " << lines[i].m_label << endl;
+	for (size_t i = 0; i < lines.size(); i++)
+	{
+		for (size_t j = 0; j < lines[i].m_points.size(); j++)
+		{
+			String s = "(" + std::to_string(lines[i].m_label) + "," + std::to_string(j) + ")";
+			cout << lines[i].m_points[j].x << "  " << lines[i].m_points[j].y << "  "
+				<< lines[i].m_k << "  " << lines[i].m_b << "  " << lines[i].m_label << endl;
 
-	//		circle(rgbSRC, lines[i].m_points[j], 3, Scalar(255, 0, 0), -1);
-	//		putText(rgbSRC, s, lines[i].m_points[j], FONT_HERSHEY_SIMPLEX, 0.6, Scalar(0, 0, 255), 1, LINE_AA);//在图片上写文字
-	//	}
-	//}
-	//namedWindow("光条编码", WINDOW_NORMAL);
-	//imshow("光条编码", rgbSRC);
-
+			circle(rgbSRC, lines[i].m_points[j], 1, Scalar(255, 0, 0), -1);
+			putText(rgbSRC, s, lines[i].m_points[j], FONT_HERSHEY_SIMPLEX, 0.25, Scalar(0, 0, 255), 1, LINE_AA);//在图片上写文字
+		}
+	}
+	namedWindow("光条编码", WINDOW_NORMAL);
+	imshow("光条编码", rgbSRC);
+	//imwrite("labeled.bmp", rgbSRC);
+	double time2 = (static_cast<double>(getTickCount()) - time1) / getTickFrequency();
+	cout << time2 << "ms" << endl;
 	waitKey(0);
 	return 0;
 }

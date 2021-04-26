@@ -3,7 +3,7 @@ clear;
 close all;
 
 % 灰度图， uint8 1024 * 1280
-src = imread('E:\课程资料\毕设\Program\Graduation_Project\Picture\I8.bmp');
+src = imread('E:\课程资料\毕设\Program\Graduation_Project\GetROI\region.bmp');
 figure;
 subplot(2,2,1);
 imshow(src);
@@ -47,10 +47,11 @@ title('背景滤波');
 J2 = imtophat(src, strel('disk', 15));
 subplot(2,4,3);
 imshow(J2); 
-title('背景差分');
+title('顶帽操作');
 L = logical(J2);
 
 % 对src进行自适应二值化， 得到bw2
+% bw2 = im2bw(J2, 30/255);
 bw2 = imbinarize(J2, 'adaptive');
 % bw2 = medfilt2(bw2, [3, 3]);
 subplot(2,4,4);

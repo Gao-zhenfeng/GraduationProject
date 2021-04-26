@@ -1,6 +1,5 @@
 clear ;
 close all;
-%%
 
 filename = 'keypoint.txt';
 [xf,yf]=textread(filename,'%n%n');
@@ -25,8 +24,9 @@ for i = 1 : length(xf)
         classY = xyc(i, 2);
         for j = 1 : length(xf)
             if(j ~= i && xyc(j, 3) == 0)
+                delta = xyc(i, 1) - xyc(j, 1);
                 k = (xyc(j, 2) - xyc(i, 2)) / (xyc(j, 1) - xyc(i, 1));
-                if(k < 7 && k > 4)
+                if(abs(delta) < 15)
                     xyc(j, 3) = label;
                     classX = [classX; xyc(j, 1)];
                     classY = [classY; xyc(j, 2)];
