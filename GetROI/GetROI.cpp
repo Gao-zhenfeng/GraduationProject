@@ -135,51 +135,52 @@ int main(int argc, char** argv)
 {
 	double time1 = static_cast<double>(getTickCount());
 
-	Mat src = imread("../Picture/I8.bmp", CV_8UC1);
+	Mat src = imread("../Picture/I9.bmp", CV_8UC1);
 
 	Mat topHatImage;
-	Mat element = getStructuringElement(MORPH_ELLIPSE, Size(17, 17));
+	Mat element = getStructuringElement(MORPH_ELLIPSE, Size(10, 10));
 	morphologyEx(src, topHatImage, MORPH_TOPHAT, element);
+	//morphologyEx(topHatImage, topHatImage, MORPH_OPEN, element);
+	//morphologyEx(topHatImage, topHatImage, MORPH_CLOSE, element);
+
 	//imshow("形态学操作后", topHatImage);
 	//自适应二值化
 	Mat dst;
-	adaptiveThreshold(topHatImage, dst, 255, ADAPTIVE_THRESH_MEAN_C, THRESH_BINARY, 7, 0);
-	//imshow("阈值分割", dst);
-	RemoveSmallRegion(dst, dst, 50, 1, 0);
-	//imshow("remove small region", dst);
+	adaptiveThreshold(topHatImage, dst, 255, ADAPTIVE_THRESH_MEAN_C, THRESH_BINARY, 9, 0);
 
+	//imshow("阈值分割+ 开操作", dst);
+	//RemoveSmallRegion(dst, dst, 50, 1, 0);
+	//imshow("remove small region", dst);
+	//imwrite("threshold.bmp", dst);
 	Mat labels, stats, centroids;
 	int i;
 	size_t nccomps = connectedComponentsWithStats(dst, labels, stats, centroids);
 	cout << "Total Connected Components Detected: " << nccomps << endl;
 
-	std::vector<cv::Vec3b> colors(nccomps + 1);
-	colors[0] = Vec3b(0, 0, 0); // background pixels remain black.
+	std::vector<uchar> colors(nccomps + 1);
+	colors[0] = (uchar)0; // background pixels remain black.
 	for (i = 1; i < nccomps; i++)
 	{
 		//cout << "连通域大小" << stats.at<int>(i, cv::CC_STAT_AREA) << endl;
-		colors[i] = Vec3b(255, 255, 255);
+		colors[i] = (uchar)255;
 
 		if (stats.at<int>(i, cv::CC_STAT_AREA) < 20000)
 		{
-			colors[i] = Vec3b(0, 0, 0); // small regions are painted with black too.
+			colors[i] = (uchar)0; // small regions are painted with black too.
 		}
 	}
-	Mat img_color = Mat::zeros(dst.size(), CV_8UC3);
-	for (int y = 0; y < img_color.rows; y++)
+	Mat img_binary = Mat::zeros(dst.size(), CV_8UC1);
+	for (int y = 0; y < img_binary.rows; y++)
 	{
-		for (int x = 0; x < img_color.cols; x++)
+		for (int x = 0; x < img_binary.cols; x++)
 		{
 			int label = labels.at<int>(y, x);
 			CV_Assert(0 <= label && label <= nccomps);
-			img_color.at<cv::Vec3b>(y, x) = colors[label];
+			img_binary.at<uchar>(y, x) = colors[label];
 		}
 	}
-	//cv::imshow("Labeled map", img_color);
-
-	Mat img_binary;
-	cvtColor(img_color, img_binary, COLOR_RGB2GRAY);
-	//imwrite("region.bmp", img_binary);
+	//imshow("region", img_binary);
+	//imwrite("../Picture/I10.bmp", img_binary);
 	double time2 = (static_cast<double>(getTickCount()) - time1) / getTickFrequency();
 	cout << time2 << "s" << endl;
 	waitKey(0);

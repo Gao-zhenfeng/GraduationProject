@@ -49,30 +49,32 @@ using std::cout;
 
 int main()
 {
-	FileStorage fs{ "../Calibrate/calibdata.yml", FileStorage::READ };
+	FileStorage fs{ "Camera_CaliResult.xml", FileStorage::READ };
 	Matx33f M;//相机内参矩阵
-	fs["cameraMatrix"] >> M;
+	fs["intrinsic_matrix1"] >> M;
 	cout << M << endl;
-	Matx33f R = Matx33f::eye();//旋转矩阵
-	cout << R << endl;
-	Matx31f t = Matx31f::eye();//平移矩阵
-	Matx31f q = Matx31f::eye();//图像坐标
+	fs.release();
+	//Mat R;//旋转矩阵
+	//fs["rotation_vectors1"] >> R;
+	//cout << R << endl;
+	//Matx31f t = Matx31f::eye();//平移矩阵
+	//Matx31f q = Matx31f::eye();//图像坐标
 	// T = [r1, r2, t]
-	Matx33f T = Matx33f(R(0, 0), R(0, 1), t(0, 1),
-		R(1, 0), R(1, 1), t(1, 2),
-		R(2, 0), R(2, 1), t(2, 2));
-	// H： 单应性矩阵
-	Matx33f H = M * T;
-	Matx31f b = Matx31f{ H(0, 2), H(1,2), H(2,2) } *-1;
+	//Matx33f T = Matx33f(R(0, 0), R(0, 1), t(0, 1),
+	//	R(1, 0), R(1, 1), t(1, 2),
+	//	R(2, 0), R(2, 1), t(2, 2));
+	//// H： 单应性矩阵
+	//Matx33f H = M * T;
+	//Matx31f b = Matx31f{ H(0, 2), H(1,2), H(2,2) } *-1;
 	//转换为		|h11 h12  -u|		 | -h13 |
 	//			|h21  h22  -v| *X =  | -h23|
 	//			|h32  h32  -1|		 |-h33 |
-	Matx33f A = Matx33f{ H(0,0), H(0,1), q(0,0) * -1,
-						H(1,0), H(1,1), q(1,0) * -1,
-						H(2,0), H(2,1), q(2,0) * -1
-	};
-	Matx31f X;
-	solve(A, b, X, DECOMP_LU);
+	//Matx33f A = Matx33f{ H(0,0), H(0,1), q(0,0) * -1,
+	//					H(1,0), H(1,1), q(1,0) * -1,
+	//					H(2,0), H(2,1), q(2,0) * -1
+	//};
+	//Matx31f X;
+	//solve(A, b, X, DECOMP_LU);
 
 	return 0;
 }
