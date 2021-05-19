@@ -21,8 +21,8 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{d142418a-74a3-4141-ba79-1350cd7be94e}</ProjectGuid>
-    <RootNamespace>StructuredLineCalibration</RootNamespace>
+    <ProjectGuid>{0b3a8f48-d7d1-4b3f-a799-4c8127841c1d}</ProjectGuid>
+    <RootNamespace>GetCorner</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -143,11 +143,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="PlaneFitting.cpp" />
-    <ClCompile Include="StructuredLineCalibration.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="PlaneFitting.h" />
+    <ClCompile Include="main.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

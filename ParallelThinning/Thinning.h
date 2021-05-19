@@ -31,4 +31,6 @@ std::vector<Point> getLineAllPoint(Point2d p1, Point2d p2);
 float getK(Mat src, std::vector<Vec4i> linesP, int threshold, int mimLineLength, int maxLineGap);
 
 bool fitPoints(LineData& pts);
+
+bool cmp(const Point& a, const Point& b);
 std::vector<LineData> getLineData(std::vector<KeyPoint>keyPoints, float k);

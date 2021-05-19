@@ -179,8 +179,12 @@ int main(int argc, char** argv)
 			img_binary.at<uchar>(y, x) = colors[label];
 		}
 	}
+	Mat dilateImgBinary;
+	Mat element2 = getStructuringElement(MORPH_ELLIPSE, Size(3, 3));
+	// 对img_binary膨胀，方便后面对灰度光条区域进行提取
+	morphologyEx(img_binary, dilateImgBinary, MORPH_DILATE, element2);
 	//imshow("region", img_binary);
-	//imwrite("../Picture/I10.bmp", img_binary);
+	//imwrite("../Picture/I11.bmp", dilateImgBinary);
 	double time2 = (static_cast<double>(getTickCount()) - time1) / getTickFrequency();
 	cout << time2 << "s" << endl;
 	waitKey(0);

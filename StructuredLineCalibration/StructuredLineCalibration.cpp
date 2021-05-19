@@ -3,7 +3,7 @@
 
 #include <iostream>
 #include <opencv2/opencv.hpp>
-
+#include "PlaneFitting.h"
 using namespace cv;
 using std::endl;
 using std::cout;
@@ -50,10 +50,34 @@ using std::cout;
 int main()
 {
 	FileStorage fs{ "Camera_CaliResult.xml", FileStorage::READ };
+	FileStorage fs2{ "LinePlaneData.yml", FileStorage::WRITE };
 	Matx33f M;//相机内参矩阵
 	fs["intrinsic_matrix1"] >> M;
 	cout << M << endl;
 	fs.release();
+
+	fs2 << "planes number" << 15;
+	fs2 << "cameraMatrix" << M;
+
+	Mat points = ReadMatFromTxt("E:\\课程资料\\毕设\\Program\\Graduation_Project\\Data\\cornerPoint.txt", 225, 7);
+	//cout << points << endl;
+	std::vector<LinePlane> linePlanes;
+	for (int i = 0; i < 15; i++)
+	{
+		std::vector<Point3d> tempLine;
+		for (int j = 0; j < 15; j++)
+		{
+			Point3d p{ points.at<double>(j + i * 15, 4), points.at<double>(j + i * 15, 5), points.at<double>(j + i * 15, 6) };
+			tempLine.push_back(p);
+		}
+		//lines.push_back(tempLine);
+		LinePlane lp{ tempLine, i };
+		lp.planeFitting();
+		linePlanes.push_back(lp);
+		fs2 << "lineplane" + std::to_string(i) << lp.coeffient;
+		//cout << i << ":" << lp.coeffient << endl;
+	}
+
 	//Mat R;//旋转矩阵
 	//fs["rotation_vectors1"] >> R;
 	//cout << R << endl;
@@ -75,6 +99,6 @@ int main()
 	//};
 	//Matx31f X;
 	//solve(A, b, X, DECOMP_LU);
-
+	fs2.release();
 	return 0;
 }

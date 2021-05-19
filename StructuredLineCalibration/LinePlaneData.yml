@@ -1,0 +1,99 @@
+%YAML:1.0
+---
+planes number: 15
+cameraMatrix: !!opencv-matrix
+   rows: 3
+   cols: 3
+   dt: f
+   data: [ 1.71658337e+03, 0., 6.27257568e+02, 0., 1.71970679e+03,
+       5.13193237e+02, 0., 0., 1. ]
+lineplane0: !!opencv-matrix
+   rows: 3
+   cols: 1
+   dt: d
+   data: [ 2.3952960571325246e-01, 1.0147104543542899e-01,
+       4.2390096684856718e+02 ]
+lineplane1: !!opencv-matrix
+   rows: 3
+   cols: 1
+   dt: d
+   data: [ 2.3915418417430220e-01, 1.2870657928019141e-01,
+       4.2515925963151619e+02 ]
+lineplane2: !!opencv-matrix
+   rows: 3
+   cols: 1
+   dt: d
+   data: [ 2.3949427085692335e-01, 9.3937355424808341e-02,
+       4.2387517883070240e+02 ]
+lineplane3: !!opencv-matrix
+   rows: 3
+   cols: 1
+   dt: d
+   data: [ 2.3874065314924631e-01, 1.6839677359674468e-01,
+       4.2629046862258161e+02 ]
+lineplane4: !!opencv-matrix
+   rows: 3
+   cols: 1
+   dt: d
+   data: [ 2.3910860857913652e-01, 1.1975961023449654e-01,
+       4.2484280669758880e+02 ]
+lineplane5: !!opencv-matrix
+   rows: 3
+   cols: 1
+   dt: d
+   data: [ 2.3906953620818394e-01, 1.2011616791703822e-01,
+       4.2486912021667075e+02 ]
+lineplane6: !!opencv-matrix
+   rows: 3
+   cols: 1
+   dt: d
+   data: [ 2.3843935914095482e-01, 1.8139212672210692e-01,
+       4.2567839313061450e+02 ]
+lineplane7: !!opencv-matrix
+   rows: 3
+   cols: 1
+   dt: d
+   data: [ 2.3904398504926705e-01, 1.1965234652900816e-01,
+       4.2490845493778818e+02 ]
+lineplane8: !!opencv-matrix
+   rows: 3
+   cols: 1
+   dt: d
+   data: [ 2.3905905223624976e-01, 1.1016305537125778e-01,
+       4.2492215221367832e+02 ]
+lineplane9: !!opencv-matrix
+   rows: 3
+   cols: 1
+   dt: d
+   data: [ 2.3839985614188822e-01, 1.7111529830815031e-01,
+       4.2473271234875602e+02 ]
+lineplane10: !!opencv-matrix
+   rows: 3
+   cols: 1
+   dt: d
+   data: [ 2.3861066883338367e-01, 1.4856025120132552e-01,
+       4.2469218181303489e+02 ]
+lineplane11: !!opencv-matrix
+   rows: 3
+   cols: 1
+   dt: d
+   data: [ 2.3870584142091295e-01, 1.2419611598254408e-01,
+       4.2494448020220329e+02 ]
+lineplane12: !!opencv-matrix
+   rows: 3
+   cols: 1
+   dt: d
+   data: [ 2.3825925001336912e-01, 1.6337531937690047e-01,
+       4.2409312913304990e+02 ]
+lineplane13: !!opencv-matrix
+   rows: 3
+   cols: 1
+   dt: d
+   data: [ 2.3905417196040546e-01, 9.2254436888786082e-02,
+       4.2583382270807135e+02 ]
+lineplane14: !!opencv-matrix
+   rows: 3
+   cols: 1
+   dt: d
+   data: [ 2.3841695672607444e-01, 1.4960123004949327e-01,
+       4.2411451239376277e+02 ]

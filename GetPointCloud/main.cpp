@@ -12,10 +12,10 @@ using namespace cv;
 using std::endl;
 using std::cout;
 
-bool comp(const Point& p1, const Point& p2)
-{
-	return p1.x < p2.x;
-}
+//bool comp(const Point& p1, const Point& p2)
+//{
+//	return p1.x < p2.x;
+//}
 
 int main(int argc, char** argv)
 {

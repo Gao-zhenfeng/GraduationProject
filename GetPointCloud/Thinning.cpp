@@ -14,6 +14,19 @@ LineData::LineData(std::vector<Point> points, int label, float k, float b)
 	this->m_k = k;
 	this->m_b = b;
 }
+// 细化图像画到原图上
+Mat drawCornerOnImage(Mat image, const Mat& binary)
+{
+	cvtColor(image, image, COLOR_GRAY2BGR);
+	Mat_<uchar>::const_iterator it = binary.begin<uchar>();
+	Mat_<uchar>::const_iterator itd = binary.end<uchar>();
+	for (int i = 0; it != itd; it++, i++)
+	{
+		if (*it)
+			circle(image, Point(i % image.cols, i / image.cols), 1, Scalar(0, 0, 255), -1);
+	}
+	return image;
+}
 
 /**
 * @brief 对输入图像进行细化,骨骼化
@@ -196,6 +209,7 @@ void filterOver(cv::Mat thinSrc)
 * @param thresholdMax交叉点阈值，大于这个值为交叉点
 * @param thresholdMin端点阈值，小于这个值为端点
 * @return 为对src细化后的输出图像,格式与src格式相同，元素中只有0与1,1代表有元素，0代表为空白
+*
 */
 std::vector<cv::KeyPoint> getPoints(const cv::Mat& thinSrc, unsigned int raudis, unsigned int thresholdMax, unsigned int thresholdMin)
 {
@@ -410,11 +424,13 @@ float getK(Mat src, std::vector<Vec4i> linesP, int threshold, int mimLineLength,
 		cout << vectorK[i] << endl;
 	}
 	size_t end = vectorK.size();
-	meanK = (vectorK[end - 3] + vectorK[end - 1] + vectorK[end - 2]) / 3;
+	meanK = (vectorK[end - 5] + vectorK[end - 4] + vectorK[end - 3]) / 3;
+	cout << "斜率均值为" << meanK << endl;
 	imshow("搜寻直线", cdstP);
 	return meanK;
 }
 
+// 最小二乘法求斜率
 bool fitPoints(LineData& pts)
 {
 	int nPoints = pts.m_points.size();
@@ -442,6 +458,11 @@ bool fitPoints(LineData& pts)
 	return true;
 }
 
+bool cmp(const Point& a, const Point& b)
+{
+	return a.x < b.x;
+}
+
 std::vector<LineData> getLineData(std::vector<KeyPoint>keyPoints, float k)
 {
 	std::vector<LineData> lines;
@@ -467,8 +488,9 @@ std::vector<LineData> getLineData(std::vector<KeyPoint>keyPoints, float k)
 				if (j != i && flag[j] == 0)
 				{
 					// k1 表示pt(i) pt(j) 两点组成的斜率
-					float k1 = 1.0 * (float(keyPoints[j].pt.y) - float(keyPoints[i].pt.y)) / (keyPoints[j].pt.x - keyPoints[i].pt.x);
-					if (k1 < k + 2.0f && k1 > k - 2.0f)
+					//float k1 = 1.0 * (float(keyPoints[j].pt.y) - float(keyPoints[i].pt.y)) / (keyPoints[j].pt.x - keyPoints[i].pt.x);
+					int delta = keyPoints[j].pt.y - keyPoints[i].pt.y;
+					if (delta < k && delta > -k)
 					{
 						flag[j] = label;
 						l.m_points.push_back(keyPoints[j].pt);
@@ -494,6 +516,9 @@ std::vector<LineData> getLineData(std::vector<KeyPoint>keyPoints, float k)
 		iter = std::find(vlabel.begin(), vlabel.end(), lines[i].m_b);
 		int pos = iter - vlabel.begin();
 		lines[i].m_label = pos;
+		sort(lines[i].m_points.begin(), lines[i].m_points.end(), cmp);
 	}
+	// 根据关键点的横坐标进行排序
+
 	return lines;
 }

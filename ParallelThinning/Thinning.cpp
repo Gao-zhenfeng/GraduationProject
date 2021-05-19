@@ -430,6 +430,7 @@ float getK(Mat src, std::vector<Vec4i> linesP, int threshold, int mimLineLength,
 	return meanK;
 }
 
+// 最小二乘法求斜率
 bool fitPoints(LineData& pts)
 {
 	int nPoints = pts.m_points.size();
@@ -455,6 +456,11 @@ bool fitPoints(LineData& pts)
 	pts.m_k = (sumXY - sumX * yMean) / denominator;
 	pts.m_b = yMean - pts.m_k * xMean;
 	return true;
+}
+
+bool cmp(const Point& a, const Point& b)
+{
+	return a.x < b.x;
 }
 
 std::vector<LineData> getLineData(std::vector<KeyPoint>keyPoints, float k)
@@ -510,6 +516,9 @@ std::vector<LineData> getLineData(std::vector<KeyPoint>keyPoints, float k)
 		iter = std::find(vlabel.begin(), vlabel.end(), lines[i].m_b);
 		int pos = iter - vlabel.begin();
 		lines[i].m_label = pos;
+		sort(lines[i].m_points.begin(), lines[i].m_points.end(), cmp);
 	}
+	// 根据关键点的横坐标进行排序
+
 	return lines;
 }

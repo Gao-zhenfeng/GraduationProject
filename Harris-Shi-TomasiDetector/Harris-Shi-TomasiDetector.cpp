@@ -15,29 +15,27 @@ using std::cout;
 int main()
 {
 	namedWindow("源图像", WINDOW_AUTOSIZE);
-	Mat src = imread("../Picture/I4.bmp", CV_8UC1);
+	// graySrc 是提取到的光条区域，是一张二值图像
+	Mat graySrc = imread("../Picture/I9.bmp", CV_8UC1);
+	// 灰度图像
+	Mat src = imread("../Picture/I11.bmp", CV_8UC1);
 	if (src.empty())
 	{
 		cout << "Can not open image. " << endl;
 		return -1;
 	}
-	imshow("源图像", src);
+	//imshow("源图像", src);
 	Mat dst;
-	medianBlur(src, dst, 3);
-	adaptiveThreshold(dst, dst, 255, ADAPTIVE_THRESH_GAUSSIAN_C, THRESH_BINARY, 7, 0);
-	medianBlur(dst, dst, 5);
-
-	namedWindow("自适应二值化后： ", WINDOW_KEEPRATIO);
-	imshow("自适应二值化后： ", dst);
+	bitwise_and(src, graySrc, dst);
 
 	//检测关键点
 	std::vector<KeyPoint> keyPoints;
-	Ptr<FastFeatureDetector> ffDetector = FastFeatureDetector::create(80, true, FastFeatureDetector::TYPE_9_16);
+	Ptr<FastFeatureDetector> ffDetector = FastFeatureDetector::create(130, true, FastFeatureDetector::TYPE_9_16);
 	ffDetector->detect(dst, keyPoints);
 
 	//绘制keyPoints
 	Mat keyPointsImage;
-	drawKeypoints(src, keyPoints, keyPointsImage);
+	drawKeypoints(dst, keyPoints, keyPointsImage);
 	namedWindow("keyPoints", WINDOW_NORMAL);
 	imshow("keyPoints", keyPointsImage);
 	waitKey(0);

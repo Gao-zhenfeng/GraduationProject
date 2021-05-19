@@ -14,6 +14,7 @@ using std::cout;
 int main(int argc, char** argv)
 {
 	double time1 = static_cast<double>(getTickCount());
+	Mat graySrc = imread("../Picture/I9.bmp", CV_8UC1);
 	Mat src = imread("../Picture/I10.bmp", CV_8UC1);
 	medianBlur(src, src, 3);
 	if (src.empty())
@@ -21,8 +22,8 @@ int main(int argc, char** argv)
 		cout << "image is empty. " << endl;
 		return -1;
 	}
-	namedWindow("源图像", WINDOW_NORMAL);
-	imshow("源图像", src);
+	//namedWindow("源图像", WINDOW_NORMAL);
+	//imshow("源图像", src);
 
 	/*mask(r1).setTo(255);
 	Mat maskSrc;
@@ -41,8 +42,46 @@ int main(int argc, char** argv)
 	filterOver(thinsrc);
 	Mat thinImage = thinsrc * 255;
 
-	namedWindow("细化后： ", WINDOW_NORMAL);
-	imshow("细化后： ", thinImage);
+	//namedWindow("细化后： ", WINDOW_NORMAL);
+	//imshow("细化后： ", thinImage);
+
+	//Mat rgbSrc;
+	//cvtColor(src, rgbSrc, COLOR_GRAY2RGB);
+	//for (int i = 0; i < rgbSrc.rows; i++)
+	//{
+	//	for (int j = 0; j < rgbSrc.cols; j++)
+	//	{
+	//		if (thinImage.at<uchar>(i, j) > 10)
+	//		{
+	//			rgbSrc.at<Vec3b>(i, j) = Vec3b{ 0, 0, 255 };
+	//		}
+	//	}
+	//}
+
+	/*std::vector<Point2f> corners;
+	double qualityLevel = 0.01;
+	double minDistance = 10;
+	int blockSize = 5, gradientSize = 3;
+	bool useHarrisDetector = false;
+	double k = 0.04;
+	goodFeaturesToTrack(thinImage,
+		corners,
+		1000,
+		qualityLevel,
+		minDistance,
+		Mat(),
+		blockSize,
+		gradientSize,
+		useHarrisDetector,
+		k);
+	cout << "** Number of corners detected: " << corners.size() << endl;
+	int radius = 2;
+	Mat copy = src.clone();
+	for (size_t i = 0; i < corners.size(); i++)
+	{
+		circle(copy, corners[i], radius, Scalar(0, 0, 255), FILLED);
+	}
+	imshow("harris corner", src);*/
 
 	std::vector<Vec4i> linesP;
 
@@ -51,9 +90,14 @@ int main(int argc, char** argv)
 
 	//绘制keyPoints
 	Mat keyPointsImage;
-	drawKeypoints(src, keyPoints, keyPointsImage, Scalar(0, 0, 255));
-	namedWindow("keyPoints", WINDOW_NORMAL);
-	imshow("keyPoints", keyPointsImage);
+	cvtColor(src, keyPointsImage, COLOR_GRAY2RGB);
+	for (size_t i = 0; i < keyPoints.size(); i++)
+	{
+		circle(keyPointsImage, keyPoints[i].pt, 2, Scalar(0, 0, 255), FILLED);
+	}
+	//drawKeypoints(src, keyPoints, keyPointsImage, Scalar(0, 0, 255));
+	//namedWindow("keyPoints", WINDOW_NORMAL);
+	//imshow("keyPoints", keyPointsImage);
 
 	//std::filesystem::path p{ "keypoint.txt" };
 	//std::ofstream fout{ p };
