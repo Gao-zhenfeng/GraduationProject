@@ -24,13 +24,17 @@ struct LineData
 
 Mat drawCornerOnImage(Mat image, const Mat& binary);
 Mat thinImage(const cv::Mat& src, const int maxIterations = -1);
+void cvThin(cv::Mat& src, cv::Mat& dst, int intera);
 void filterOver(cv::Mat thinSrc);
-std::vector<cv::KeyPoint> getPoints(const cv::Mat& thinSrc, unsigned int raudis = 4, unsigned int thresholdMax = 6, unsigned int thresholdMin = 4);
-std::vector<cv::KeyPoint> getKeyPoints(std::vector<cv::KeyPoint> InputKeyPoints, int radius = 10);
+std::vector<cv::Point2f> getPoints(const cv::Mat& thinSrc, unsigned int raudis = 4, unsigned int thresholdMax = 6, unsigned int thresholdMin = 4);
+std::vector<cv::Point2f> getKeyPoints(std::vector<cv::Point2f> InputKeyPoints, int radius = 10);
+float sumGray(const Mat& src, Point2f& center, int radius);
+void grayCenter(const Mat& src, Point2f& center, int radius);
+void preciseCorner(const Mat& src, Point2f& center, int radius);
 std::vector<Point> getLineAllPoint(Point2d p1, Point2d p2);
 float getK(Mat src, std::vector<Vec4i> linesP, int threshold, int mimLineLength, int maxLineGap);
 
 bool fitPoints(LineData& pts);
 
 bool cmp(const Point& a, const Point& b);
-std::vector<LineData> getLineData(std::vector<KeyPoint>keyPoints, float k);
+std::vector<LineData> getLineData(std::vector<Point2f>keyPoints, float k);

@@ -4,9 +4,106 @@ LinePlane::LinePlane()
 {
 }
 
-LinePlane::LinePlane(std::vector<Point3d> points, int label) : m_points{ points }, m_label{ label }
+LinePlane::LinePlane(std::vector<Point3d> points, int label) : m_label{ label }
 {
 	coeffient = Mat(3, 1, CV_64F, Scalar(0));
+	m_points.insert(m_points.end(), points.begin(), points.end());
+}
+
+// 对lines上二维点，求其三维坐标，
+LinePlane::LinePlane(LineData lines, Matx33d M, Matx41d distCoeffs, Matx13d R, Matx13d t)
+{
+	this->m_line = lines;
+	this->m_label = lines.m_label;
+	std::vector<Point2d> UndistortPoints;
+	undistortPoints(lines.m_points, UndistortPoints, M, distCoeffs, cv::noArray(), M);
+	Matx33d RMatrix;
+	Rodrigues(R, RMatrix);
+
+	/*求解如下方程组：为求 zc xw yw
+			|u|		  |xw|		   |u|			|xw|
+		zc	|v| = H * |yw|     q = |v|		X = |yw|
+			|1|		  |1 |		   |1|			|zc|
+
+转换为		|h11  h12  -u|		 |-h13|
+			|h21  h22  -v| * X = |-h23|    Ax = b
+			|h31  h32  -1|		 |-h33|
+*/
+
+	double c = RMatrix(0, 2) * t(0, 0) + RMatrix(1, 2) * t(0, 1) + RMatrix(2, 2) * t(0, 2);
+	Matx41d b = Matx41d{ 0, 0, 0,  c };
+	int sizeUts = UndistortPoints.size();
+	for (int i = 0; i < sizeUts; i++)
+	{
+		double u = UndistortPoints[i].x;
+		double v = UndistortPoints[i].y;
+		Matx44d A = Matx44d{
+							M(0, 0), M(0, 1), M(0, 2), -u,
+							M(1, 0), M(1, 1), M(1, 2), -v,
+							M(2, 0), M(2, 1), M(2, 2), -1,
+							RMatrix(0, 2), RMatrix(1, 2), RMatrix(2, 2), 0
+		};
+		Matx41d X;
+		solve(A, b, X);
+		double xc = X(0, 0);
+		double yc = X(1, 0);
+		double zc = X(2, 0);
+		Point3d p3 = Point3d{ xc, yc, zc };
+		this->m_points.push_back(p3);
+	}
+
+	//fs::path p1{ "cornerdata.txt" };
+	//std::ofstream out1{ p1, std::ios::out | std::ios::app };
+	//size_t numOfPoints = lines.m_points.size();
+	//for (size_t i = 0; i < numOfPoints; i++)
+	//{
+	//	out1 << std::setprecision(6) << std::fixed << lines.m_points[i].x << "    " << lines.m_points[i].y << "    "
+	//		<< lines.m_label << "    " << i << "    " << m_points[i].x << "    " << m_points[i].y
+	//		<< "    " << m_points[i].z << endl;
+	//}
+	//out1.close();
+}
+
+void LinePlane::addPoints(LineData lines, Matx33d M, Matx41d distCoeffs, Matx13d R, Matx13d t)
+{
+	this->m_line = lines;
+	this->m_label = lines.m_label;
+	std::vector<Point2d> UndistortPoints;
+	undistortPoints(lines.m_points, UndistortPoints, M, distCoeffs, cv::noArray(), M);
+	Matx33d RMatrix;
+	Rodrigues(R, RMatrix);
+
+	/*求解如下方程组：为求 zc xw yw
+			|u|		  |xw|		   |u|			|xw|
+		zc	|v| = H * |yw|     q = |v|		X = |yw|
+			|1|		  |1 |		   |1|			|zc|
+
+转换为		|h11  h12  -u|		 |-h13|
+			|h21  h22  -v| * X = |-h23|    Ax = b
+			|h31  h32  -1|		 |-h33|
+*/
+
+	double c = RMatrix(0, 2) * t(0, 0) + RMatrix(1, 2) * t(0, 1) + RMatrix(2, 2) * t(0, 2);
+	Matx41d b = Matx41d{ 0, 0, 0,  c };
+	int sizeUts = UndistortPoints.size();
+	for (int i = 0; i < sizeUts; i++)
+	{
+		double u = UndistortPoints[i].x;
+		double v = UndistortPoints[i].y;
+		Matx44d A = Matx44d{
+							M(0, 0), M(0, 1), M(0, 2), -u,
+							M(1, 0), M(1, 1), M(1, 2), -v,
+							M(2, 0), M(2, 1), M(2, 2), -1,
+							RMatrix(0, 2), RMatrix(1, 2), RMatrix(2, 2), 0
+		};
+		Matx41d X;
+		solve(A, b, X);
+		double xc = X(0, 0);
+		double yc = X(1, 0);
+		double zc = X(2, 0);
+		Point3d p3 = Point3d{ xc, yc, zc };
+		this->m_points.push_back(p3);
+	}
 }
 
 void LinePlane::planeFitting()

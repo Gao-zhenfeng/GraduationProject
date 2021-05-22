@@ -2,8 +2,13 @@
 //
 
 #include <iostream>
+#include <fstream>
+#include <filesystem>
 #include <opencv2/opencv.hpp>
 #include "PlaneFitting.h"
+#include "GetCorner.h"
+#include "LineData.h"
+
 using namespace cv;
 using std::endl;
 using std::cout;
@@ -21,7 +26,7 @@ using std::cout;
 
 转换为		|h11  h12  -u|		 |-h13|
 			|h21  h22  -v| * X = |-h23|
-			|h32  h32  -1|		 |-h33|
+			|h31  h32  -1|		 |-h33|
 
 进而求得：
 		|xc|		   |xw|
@@ -49,56 +54,49 @@ using std::cout;
 
 int main()
 {
-	FileStorage fs{ "Camera_CaliResult.xml", FileStorage::READ };
+	FileStorage fs{ "Camera_CaliResult2.xml", FileStorage::READ };
 	FileStorage fs2{ "LinePlaneData.yml", FileStorage::WRITE };
-	Matx33f M;//相机内参矩阵
+
+	Matx33d M;//相机内参矩阵
 	fs["intrinsic_matrix1"] >> M;
-	cout << M << endl;
+	Matx41d distCoeffs;
+	fs["distortion_coeffs1"] >> distCoeffs;
+	Mat rotation_matrix;
+	fs["rotation_vectors1"] >> rotation_matrix;
+	Mat translation_vectors;
+	fs["translation_vectors1"] >> translation_vectors;
 	fs.release();
 
-	fs2 << "planes number" << 15;
+	fs2 << "planes number" << 20;
 	fs2 << "cameraMatrix" << M;
+	fs2 << "distCoeffs" << distCoeffs;
 
-	Mat points = ReadMatFromTxt("E:\\课程资料\\毕设\\Program\\Graduation_Project\\Data\\cornerPoint.txt", 225, 7);
-	//cout << points << endl;
-	std::vector<LinePlane> linePlanes;
-	for (int i = 0; i < 15; i++)
+	std::vector<Corner> allImageCorner;
+	allImageCorner.push_back(Corner{ "../Picture/l52.bmp" }); allImageCorner[0].getCorner(); Mat m0 = allImageCorner[0].m_keyPointsImage;
+	allImageCorner.push_back(Corner{ "../Picture/l55.bmp" }); allImageCorner[1].getCorner(); Mat m1 = allImageCorner[1].m_keyPointsImage;
+	allImageCorner.push_back(Corner{ "../Picture/l57.bmp" }); allImageCorner[2].getCorner(); Mat m2 = allImageCorner[2].m_keyPointsImage;
+	allImageCorner.push_back(Corner{ "../Picture/l59.bmp" }); allImageCorner[3].getCorner(); Mat m3 = allImageCorner[3].m_keyPointsImage;
+	int numOfImage = allImageCorner.size(); //4张图片
+	int numOfLines = allImageCorner[0].m_lines.size(); // 每张图片横向光条数量： 20
+
+	for (int i = 0; i < numOfLines; i++)
 	{
-		std::vector<Point3d> tempLine;
-		for (int j = 0; j < 15; j++)
+		LinePlane lp;
+		for (int j = 0; j < numOfImage; j++)
 		{
-			Point3d p{ points.at<double>(j + i * 15, 4), points.at<double>(j + i * 15, 5), points.at<double>(j + i * 15, 6) };
-			tempLine.push_back(p);
+			// 每张图片的旋转矩阵和平移矩阵
+			Matx13d R = Matx13d{ rotation_matrix.at<double>(j, 0),
+										rotation_matrix.at<double>(j, 1),
+											rotation_matrix.at<double>(j, 2) };
+			Matx13d t = Matx13d{ translation_vectors.at<double>(j, 0),
+									translation_vectors.at<double>(j, 1),
+										translation_vectors.at<double>(j, 2) };
+			lp.addPoints(allImageCorner[j].m_lines[i], M, distCoeffs, R, t);
 		}
-		//lines.push_back(tempLine);
-		LinePlane lp{ tempLine, i };
 		lp.planeFitting();
-		linePlanes.push_back(lp);
 		fs2 << "lineplane" + std::to_string(i) << lp.coeffient;
-		//cout << i << ":" << lp.coeffient << endl;
 	}
 
-	//Mat R;//旋转矩阵
-	//fs["rotation_vectors1"] >> R;
-	//cout << R << endl;
-	//Matx31f t = Matx31f::eye();//平移矩阵
-	//Matx31f q = Matx31f::eye();//图像坐标
-	// T = [r1, r2, t]
-	//Matx33f T = Matx33f(R(0, 0), R(0, 1), t(0, 1),
-	//	R(1, 0), R(1, 1), t(1, 2),
-	//	R(2, 0), R(2, 1), t(2, 2));
-	//// H： 单应性矩阵
-	//Matx33f H = M * T;
-	//Matx31f b = Matx31f{ H(0, 2), H(1,2), H(2,2) } *-1;
-	//转换为		|h11 h12  -u|		 | -h13 |
-	//			|h21  h22  -v| *X =  | -h23|
-	//			|h32  h32  -1|		 |-h33 |
-	//Matx33f A = Matx33f{ H(0,0), H(0,1), q(0,0) * -1,
-	//					H(1,0), H(1,1), q(1,0) * -1,
-	//					H(2,0), H(2,1), q(2,0) * -1
-	//};
-	//Matx31f X;
-	//solve(A, b, X, DECOMP_LU);
 	fs2.release();
 	return 0;
 }

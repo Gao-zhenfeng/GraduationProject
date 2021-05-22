@@ -22,8 +22,6 @@ int main(int argc, char** argv)
 		cout << "image is empty. " << endl;
 		return -1;
 	}
-	//namedWindow("源图像", WINDOW_NORMAL);
-	//imshow("源图像", src);
 
 	/*mask(r1).setTo(255);
 	Mat maskSrc;
@@ -34,16 +32,10 @@ int main(int argc, char** argv)
 	//adaptiveThreshold(dst, dst, 1, ADAPTIVE_THRESH_GAUSSIAN_C, THRESH_BINARY, 7, 0);
 	//medianBlur(dst, dst, 5);
 
-	//namedWindow("自适应二值化后： ", WINDOW_NORMAL);
-	//imshow("自适应二值化后： ", dst * 255);
-
 	Mat thinsrc;
-	thinsrc = thinImage(dst);
+	cvThin(dst, thinsrc, 5);
 	filterOver(thinsrc);
 	Mat thinImage = thinsrc * 255;
-
-	//namedWindow("细化后： ", WINDOW_NORMAL);
-	//imshow("细化后： ", thinImage);
 
 	//Mat rgbSrc;
 	//cvtColor(src, rgbSrc, COLOR_GRAY2RGB);
@@ -83,21 +75,21 @@ int main(int argc, char** argv)
 	}
 	imshow("harris corner", src);*/
 
-	std::vector<Vec4i> linesP;
-
-	std::vector<KeyPoint> roughKeyPoints = getPoints(thinsrc, 5, 6, 0);
-	std::vector<KeyPoint>keyPoints = getKeyPoints(roughKeyPoints, 15);
+	std::vector<Point2f> roughKeyPoints = getPoints(thinsrc, 5, 8, 0);
+	Mat roughKeyPointsImage;
+	//drawKeypoints(src, roughKeyPoints, roughKeyPointsImage);
+	std::vector<Point2f>keyPoints = getKeyPoints(roughKeyPoints, 10);
 
 	//绘制keyPoints
 	Mat keyPointsImage;
-	cvtColor(src, keyPointsImage, COLOR_GRAY2RGB);
+	cvtColor(graySrc, keyPointsImage, COLOR_GRAY2RGB);
 	for (size_t i = 0; i < keyPoints.size(); i++)
 	{
-		circle(keyPointsImage, keyPoints[i].pt, 2, Scalar(0, 0, 255), FILLED);
+		grayCenter(graySrc, keyPoints[i], 2);
+		//preciseCorner(graySrc, keyPoints[i].pt, 2);
+		circle(keyPointsImage, keyPoints[i], 1, Scalar(0, 0, 255), FILLED);
 	}
 	//drawKeypoints(src, keyPoints, keyPointsImage, Scalar(0, 0, 255));
-	//namedWindow("keyPoints", WINDOW_NORMAL);
-	//imshow("keyPoints", keyPointsImage);
 
 	//std::filesystem::path p{ "keypoint.txt" };
 	//std::ofstream fout{ p };
@@ -121,14 +113,11 @@ int main(int argc, char** argv)
 			String s = "(" + std::to_string(lines[i].m_label) + "," + std::to_string(j) + ")";
 			//cout << lines[i].m_points[j].x << "  " << lines[i].m_points[j].y << "  "
 				//<< lines[i].m_k << "  " << lines[i].m_b << "  " << lines[i].m_label << endl;
-
 			circle(rgbSRC, lines[i].m_points[j], 1, Scalar(255, 0, 0), -1);
 			putText(rgbSRC, s, lines[i].m_points[j], FONT_HERSHEY_SIMPLEX, 0.25, Scalar(0, 0, 255), 1, LINE_AA);//在图片上写文字
 		}
 	}
-	namedWindow("光条编码", WINDOW_NORMAL);
-	imshow("光条编码", rgbSRC);
-	//imwrite("labeled.bmp", rgbSRC);
+
 	double time2 = (static_cast<double>(getTickCount()) - time1) / getTickFrequency();
 	cout << time2 << "s" << endl;
 	waitKey(0);

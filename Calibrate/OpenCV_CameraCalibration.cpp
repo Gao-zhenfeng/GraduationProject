@@ -7,8 +7,9 @@ using namespace cv;
 
 // Defining the dimensions of checkerboard
 // 定义棋盘格的尺寸
-int board_w = 6;
-int board_h = 9;
+int board_w = 9;
+int board_h = 13;
+double checkBoardRadius = 12; //棋盘格每个格子的边长 mm
 Size board_sz = Size(board_w, board_h);//corners per row, corner per column
 //Size patternSize = Size(board_h - 1, board_w - 1);
 int main()
@@ -26,7 +27,6 @@ int main()
 	// objp各元素都是整数，是否应该加一个系数，如棋盘格单元的半径为25mm
 	//后面将会以 mm来定义距离
 	std::vector<cv::Point3f> objp;
-	double checkBoardRadius = 25; //棋盘格每个格子的边长
 	for (size_t i = 0; i < board_sz.height; i++) //9列， width is 9
 	{
 		for (size_t j = 0; j < board_sz.width; j++) // 6行，height is 6
@@ -41,7 +41,7 @@ int main()
 
 	// Path of the folder containing checkerboard images
 	// 包含棋盘图像的文件夹的路径
-	std::string path = "./images/*.jpg";
+	std::string path = "./images/b/*.bmp";
 
 	//std::string path = "./calib_left/*.bmp";
 
@@ -66,7 +66,7 @@ int main()
 		{
 			continue;
 		}
-		cout << "the current image is " << i << "th" << endl;
+		cout << "the current image is " << i << "th" << images[i] << endl;
 		cv::cvtColor(frame, gray, cv::COLOR_BGR2GRAY);
 
 		// Finding checker board corners
@@ -99,8 +99,8 @@ int main()
 			imgpoints.push_back(corner_pts);
 		}
 
-		cv::imshow("chessboard detection", frame);
-		cv::waitKey(0);
+		//cv::imshow("chessboard detection", frame);
+		//cv::waitKey(0);
 	}
 
 	cv::destroyAllWindows();

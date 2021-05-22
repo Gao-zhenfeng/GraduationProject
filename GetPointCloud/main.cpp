@@ -1,87 +1,64 @@
 ﻿#include <iostream>
+#include <string>
 #include <fstream>
 #include <filesystem>
-#include <algorithm>
 #include <opencv2/opencv.hpp>
-#include "opencv2/core.hpp"
-#include "opencv2/imgproc.hpp"
-#include "opencv2/highgui.hpp"
-#include "Thinning.h"
-#include<opencv2/xfeatures2d.hpp>
+#include "GetCorner.h"
+#include "LineData.h"
+
 using namespace cv;
+namespace fs = std::filesystem;
+using std::ifstream;
+using std::ofstream;
 using std::endl;
 using std::cout;
 
-//bool comp(const Point& p1, const Point& p2)
-//{
-//	return p1.x < p2.x;
-//}
-
-int main(int argc, char** argv)
+int main()
 {
-	double time1 = static_cast<double>(getTickCount());
-	Mat src = imread("../Picture/I10.bmp", CV_8UC1);
-	if (src.empty())
+	FileStorage fs{ "LinePlaneData.yml", FileStorage::READ };
+	fs::path fs2{ "l55cornerdata.txt" };
+	std::ofstream out1{ fs2, std::ios::out };
+
+	Matx33d M;//相机内参矩阵
+	fs["cameraMatrix"] >> M;
+	Matx41d distCoeffs; //相机畸变矩阵
+	fs["distCoeffs"] >> distCoeffs;
+	Mat abc; //光平面参数  hconcat（B,C，A）
+	fs["lineplane0"] >> abc;
+	for (size_t i = 1; i < 20; i++)
 	{
-		cout << "image is empty. " << endl;
-		return -1;
+		Matx31d coeffs;
+		fs["lineplane" + std::to_string(i)] >> coeffs;
+		hconcat(abc, coeffs, abc); //abc 3 * 20
 	}
-	namedWindow("源图像", WINDOW_NORMAL);
-	imshow("源图像", src);
+	fs.release();
+	//cout << abc << endl;
 
-	Mat dst = src / 255;
-
-	Mat thinsrc;
-	thinsrc = thinImage(dst);
-	filterOver(thinsrc);
-	Mat thinImage = thinsrc * 255;
-
-	namedWindow("细化后： ", WINDOW_NORMAL);
-	imshow("细化后： ", thinImage);
-
-	std::vector<Vec4i> linesP;
-
-	std::vector<KeyPoint> roughKeyPoints = getPoints(thinsrc, 4, 6, 0);
-	std::vector<KeyPoint>keyPoints = getKeyPoints(roughKeyPoints, 20);
-
-	//绘制keyPoints
-	Mat keyPointsImage;
-	drawKeypoints(thinImage, keyPoints, keyPointsImage, Scalar(0, 0, 255));
-	namedWindow("keyPoints", WINDOW_NORMAL);
-	imshow("keyPoints", keyPointsImage);
-
-	//std::filesystem::path p{ "keypoint.txt" };
-	//std::ofstream fout{ p };
-
-	//for (size_t i = 0; i < keyPoints.size(); i++)
-	//{
-	//	fout << keyPoints[i].pt.x << "  " << keyPoints[i].pt.y << endl;
-	//}
-	//fout.close();
-
-	//float k = getK(thinImage, linesP, g_threshold, g_mimLineLength, g_maxLineGap);
-	std::vector<LineData> lines = getLineData(keyPoints, 20);
-
-	Mat rgbSRC;
-	cvtColor(src, rgbSRC, COLOR_GRAY2BGR);
-
-	for (size_t i = 0; i < lines.size(); i++)
+	Corner corners{ "../Picture/l55.bmp" , M, distCoeffs };
+	corners.getCorner();
+	Mat m = corners.m_keyPointsImage;
+	size_t numOfLines = corners.m_lines.size();
+	for (size_t i = 0; i < numOfLines; i++)
 	{
-		for (size_t j = 0; j < lines[i].m_points.size(); j++)
+		double a = abc.at<double>(0, i);
+		double b = abc.at<double>(1, i);
+		double c = abc.at<double>(2, i);
+		size_t numOfPoints = corners.m_lines[i].m_points.size();
+		for (size_t j = 0; j < numOfPoints; j++)
 		{
-			String s = "(" + std::to_string(lines[i].m_label) + "," + std::to_string(j) + ")";
-			//cout << lines[i].m_points[j].x << "  " << lines[i].m_points[j].y << "  "
-				//<< lines[i].m_k << "  " << lines[i].m_b << "  " << lines[i].m_label << endl;
-
-			circle(rgbSRC, lines[i].m_points[j], 1, Scalar(255, 0, 0), -1);
-			putText(rgbSRC, s, lines[i].m_points[j], FONT_HERSHEY_SIMPLEX, 0.25, Scalar(0, 0, 255), 1, LINE_AA);//在图片上写文字
+			double u = corners.m_lines[i].m_points[j].x;
+			double v = corners.m_lines[i].m_points[j].y;
+			Matx33d A = { M(0, 0), M(0, 1), M(0, 2) - u,
+						 M(1, 0), M(1, 1), M(1, 2) - v,
+							   a,        b,         -1 };
+			Matx31d b = { 0, 0, -c };
+			Matx31d X;
+			solve(A, b, X);
+			out1 << std::setprecision(6) << std::fixed << u << "    " << v << "    "
+				<< i << "    " << j << "    " << X(0, 0) << "    " << X(1, 0)
+				<< "    " << X(2, 0) << endl;
 		}
 	}
-	namedWindow("光条编码", WINDOW_NORMAL);
-	imshow("光条编码", rgbSRC);
-	//imwrite("labeled.bmp", rgbSRC);
-	double time2 = (static_cast<double>(getTickCount()) - time1) / getTickFrequency();
-	cout << time2 << "s" << endl;
-	waitKey(0);
+
 	return 0;
 }

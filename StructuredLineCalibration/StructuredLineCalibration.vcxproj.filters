@@ -21,9 +21,21 @@
     <ClCompile Include="PlaneFitting.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="LineData.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="GetCorner.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="PlaneFitting.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="LineData.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="GetCorner.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

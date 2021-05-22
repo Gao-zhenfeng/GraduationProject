@@ -166,6 +166,165 @@ cv::Mat thinImage(const cv::Mat& src, const int maxIterations)
 	return dst;
 }
 
+void cvThin(cv::Mat& src, cv::Mat& dst, int intera)
+{
+	if (src.type() != CV_8UC1)
+	{
+		printf("只能处理二值或灰度图像\n");
+		return;
+	}
+	//非原地操作时候，copy src到dst
+	if (dst.data != src.data)
+	{
+		src.copyTo(dst);
+	}
+
+	int i, j, n;
+	int width, height;
+	width = src.cols - 1;
+	//之所以减1，是方便处理8邻域，防止越界
+	height = src.rows - 1;
+	int step = src.step;
+	int  p2, p3, p4, p5, p6, p7, p8, p9;
+	uchar* img;
+	bool ifEnd;
+	int A1;
+	cv::Mat tmpimg;
+	//n表示迭代次数
+	for (n = 0; n < intera; n++)
+	{
+		dst.copyTo(tmpimg);
+		ifEnd = false;
+		img = tmpimg.data;
+		for (i = 1; i < height; i++)
+		{
+			img += step;
+			for (j = 1; j < width; j++)
+			{
+				uchar* p = img + j;
+				A1 = 0;
+				if (p[0] > 0)
+				{
+					if (p[-step] == 0 && p[-step + 1] > 0) //p2,p3 01模式
+					{
+						A1++;
+					}
+					if (p[-step + 1] == 0 && p[1] > 0) //p3,p4 01模式
+					{
+						A1++;
+					}
+					if (p[1] == 0 && p[step + 1] > 0) //p4,p5 01模式
+					{
+						A1++;
+					}
+					if (p[step + 1] == 0 && p[step] > 0) //p5,p6 01模式
+					{
+						A1++;
+					}
+					if (p[step] == 0 && p[step - 1] > 0) //p6,p7 01模式
+					{
+						A1++;
+					}
+					if (p[step - 1] == 0 && p[-1] > 0) //p7,p8 01模式
+					{
+						A1++;
+					}
+					if (p[-1] == 0 && p[-step - 1] > 0) //p8,p9 01模式
+					{
+						A1++;
+					}
+					if (p[-step - 1] == 0 && p[-step] > 0) //p9,p2 01模式
+					{
+						A1++;
+					}
+					p2 = p[-step] > 0 ? 1 : 0;
+					p3 = p[-step + 1] > 0 ? 1 : 0;
+					p4 = p[1] > 0 ? 1 : 0;
+					p5 = p[step + 1] > 0 ? 1 : 0;
+					p6 = p[step] > 0 ? 1 : 0;
+					p7 = p[step - 1] > 0 ? 1 : 0;
+					p8 = p[-1] > 0 ? 1 : 0;
+					p9 = p[-step - 1] > 0 ? 1 : 0;
+					if ((p2 + p3 + p4 + p5 + p6 + p7 + p8 + p9) > 1 && (p2 + p3 + p4 + p5 + p6 + p7 + p8 + p9) < 7 && A1 == 1)
+					{
+						if ((p2 == 0 || p4 == 0 || p6 == 0) && (p4 == 0 || p6 == 0 || p8 == 0)) //p2*p4*p6=0 && p4*p6*p8==0
+						{
+							dst.at<uchar>(i, j) = 0; //满足删除条件，设置当前像素为0
+							ifEnd = true;
+						}
+					}
+				}
+			}
+		}
+
+		dst.copyTo(tmpimg);
+		img = tmpimg.data;
+		for (i = 1; i < height; i++)
+		{
+			img += step;
+			for (j = 1; j < width; j++)
+			{
+				A1 = 0;
+				uchar* p = img + j;
+				if (p[0] > 0)
+				{
+					if (p[-step] == 0 && p[-step + 1] > 0) //p2,p3 01模式
+					{
+						A1++;
+					}
+					if (p[-step + 1] == 0 && p[1] > 0) //p3,p4 01模式
+					{
+						A1++;
+					}
+					if (p[1] == 0 && p[step + 1] > 0) //p4,p5 01模式
+					{
+						A1++;
+					}
+					if (p[step + 1] == 0 && p[step] > 0) //p5,p6 01模式
+					{
+						A1++;
+					}
+					if (p[step] == 0 && p[step - 1] > 0) //p6,p7 01模式
+					{
+						A1++;
+					}
+					if (p[step - 1] == 0 && p[-1] > 0) //p7,p8 01模式
+					{
+						A1++;
+					}
+					if (p[-1] == 0 && p[-step - 1] > 0) //p8,p9 01模式
+					{
+						A1++;
+					}
+					if (p[-step - 1] == 0 && p[-step] > 0) //p9,p2 01模式
+					{
+						A1++;
+					}
+					p2 = p[-step] > 0 ? 1 : 0;
+					p3 = p[-step + 1] > 0 ? 1 : 0;
+					p4 = p[1] > 0 ? 1 : 0;
+					p5 = p[step + 1] > 0 ? 1 : 0;
+					p6 = p[step] > 0 ? 1 : 0;
+					p7 = p[step - 1] > 0 ? 1 : 0;
+					p8 = p[-1] > 0 ? 1 : 0;
+					p9 = p[-step - 1] > 0 ? 1 : 0;
+					if ((p2 + p3 + p4 + p5 + p6 + p7 + p8 + p9) > 1 && (p2 + p3 + p4 + p5 + p6 + p7 + p8 + p9) < 7 && A1 == 1)
+					{
+						if ((p2 == 0 || p4 == 0 || p8 == 0) && (p2 == 0 || p6 == 0 || p8 == 0)) //p2*p4*p8=0 && p2*p6*p8==0
+						{
+							dst.at<uchar>(i, j) = 0; //满足删除条件，设置当前像素为0
+							ifEnd = true;
+						}
+					}
+				}
+			}
+		}
+
+		//如果两个子迭代已经没有可以细化的像素了，则退出迭代
+		if (!ifEnd) break;
+	}
+}
+
 /**
 * @brief 对骨骼化图数据进行过滤，实现两个点之间至少隔一个空白像素
 * @param thinSrc为输入的骨骼化图像,8位灰度图像格式，元素中只有0与1,1代表有元素，0代表为空白
@@ -211,14 +370,14 @@ void filterOver(cv::Mat thinSrc)
 * @return 为对src细化后的输出图像,格式与src格式相同，元素中只有0与1,1代表有元素，0代表为空白
 *
 */
-std::vector<cv::KeyPoint> getPoints(const cv::Mat& thinSrc, unsigned int raudis, unsigned int thresholdMax, unsigned int thresholdMin)
+std::vector<cv::Point2f> getPoints(const cv::Mat& thinSrc, unsigned int raudis, unsigned int thresholdMax, unsigned int thresholdMin)
 {
 	assert(thinSrc.type() == CV_8UC1);
 	int width = thinSrc.cols;
 	int height = thinSrc.rows;
 	cv::Mat tmp;
 	thinSrc.copyTo(tmp);
-	std::vector<cv::KeyPoint> points;
+	std::vector<cv::Point2f> points;
 	for (int i = 0; i < height; ++i)
 	{
 		for (int j = 0; j < width; ++j)
@@ -246,7 +405,7 @@ std::vector<cv::KeyPoint> getPoints(const cv::Mat& thinSrc, unsigned int raudis,
 			if (count > thresholdMax || count < thresholdMin)
 			{
 				Point2f point(j, i);
-				points.push_back(KeyPoint(point, 5));
+				points.push_back(point);
 			}
 		}
 	}
@@ -254,9 +413,9 @@ std::vector<cv::KeyPoint> getPoints(const cv::Mat& thinSrc, unsigned int raudis,
 }
 
 // 该算法可以再改进，eraser 向量的一个元素非常耗时间
-std::vector<cv::KeyPoint> getKeyPoints(std::vector<cv::KeyPoint> InputKeyPoints, int radius)
+std::vector<cv::Point2f> getKeyPoints(std::vector<cv::Point2f> InputKeyPoints, int radius)
 {
-	std::vector<cv::KeyPoint> OutputKeyPoints;
+	std::vector<cv::Point2f> OutputKeyPoints;
 
 	Range rangeX{ 0, 0 };
 	Range rangeY{ 0, 0 };
@@ -268,8 +427,8 @@ std::vector<cv::KeyPoint> getKeyPoints(std::vector<cv::KeyPoint> InputKeyPoints,
 			break;
 		}
 		// (X,Y) 为特征点坐标
-		double X = InputKeyPoints[i].pt.x;
-		double Y = InputKeyPoints[i].pt.y;
+		double X = InputKeyPoints[i].x;
+		double Y = InputKeyPoints[i].y;
 
 		// 更新范围
 		rangeX.start = X - radius; rangeX.end = X + radius;
@@ -279,14 +438,14 @@ std::vector<cv::KeyPoint> getKeyPoints(std::vector<cv::KeyPoint> InputKeyPoints,
 		// 对在范围内的KeyPoints进行累加求均值
 		for (int j = 0; j < InputKeyPoints.size(); j++)
 		{
-			double X1 = InputKeyPoints[j].pt.x;
-			double Y1 = InputKeyPoints[j].pt.y;
+			double X1 = InputKeyPoints[j].x;
+			double Y1 = InputKeyPoints[j].y;
 			if (X1 >= rangeX.start && X1 <= rangeX.end
 				&& Y1 >= rangeY.start && Y1 <= rangeY.end)
 			{
 				nPoints++;
-				sumOfPoint.x += InputKeyPoints[j].pt.x;
-				sumOfPoint.y += InputKeyPoints[j].pt.y;
+				sumOfPoint.x += InputKeyPoints[j].x;
+				sumOfPoint.y += InputKeyPoints[j].y;
 				InputKeyPoints.erase(InputKeyPoints.begin() + j);
 				//因为删除了一个元素，为防止少遍历一个元素，j--
 				j -= 1;
@@ -296,8 +455,11 @@ std::vector<cv::KeyPoint> getKeyPoints(std::vector<cv::KeyPoint> InputKeyPoints,
 		{
 			i -= 1;
 		}
-		Point2f meanPoint((sumOfPoint.x / nPoints), (sumOfPoint.y / nPoints));
-		OutputKeyPoints.push_back(KeyPoint{ meanPoint, 5 });
+		if (nPoints >= 3)	//大于等于3个点时才认为是候选点
+		{
+			Point2f meanPoint((sumOfPoint.x / nPoints), (sumOfPoint.y / nPoints));
+			OutputKeyPoints.push_back(meanPoint);
+		}
 	}
 	return OutputKeyPoints;
 }
@@ -400,6 +562,78 @@ std::vector<Point> getLineAllPoint(Point2d p1, Point2d p2)
 	return pointOnLine;
 }
 
+// 获取center点邻域内灰度累加和, 并选出累加和最大的那一个点
+float sumGray(const Mat& src, Point2f& center, int radius)
+{
+	int side = 2 * radius + 1;
+	// 选取邻域，以center 为中心，边长为2 * radius + 1的方形
+	Mat roi_uchar{ src, Rect(center.x - radius, center.y - radius, side, side) };
+	Mat roi;
+	roi_uchar.convertTo(roi, CV_32F);
+	float sumRoi = sum(roi)[0];
+	return sumRoi;
+}
+
+// 获取灰度重心
+void grayCenter(const Mat& src, Point2f& center, int radius)
+{
+	int side = 2 * radius + 1;
+	// 选取邻域，以center 为中心，边长为2 * radius + 1的方形
+	Mat roi_uchar{ src, Rect(center.x - radius, center.y - radius, side, side) };
+	Mat roi;
+	roi_uchar.convertTo(roi, CV_32F);
+	float sumRoi = sum(roi)[0];
+	//边长
+
+	// xi yi组成的矩阵
+	Mat xi = Mat::zeros(side, side, CV_32F);
+	Mat yi = Mat::zeros(side, side, CV_32F);
+	for (int i = 0; i < side; i++)
+	{
+		for (int j = 0; j < side; j++)
+		{
+			xi.at<float>(i, j) = center.x - radius + i;
+			yi.at<float>(i, j) = center.y - radius + j;
+		}
+	}
+	center.x = sum(xi.mul(roi))[0] / sumRoi;
+	center.y = sum(yi.mul(roi))[0] / sumRoi;
+}
+//算法思想
+//以center为中心，radius为半径的区域内每一个点->计算其邻域的灰度累加值
+//选出累加值最大的点坐标，以该点为中心，再进行灰度中心计算
+void preciseCorner(const Mat& src, Point2f& center, int radius)
+{
+	// side选取小一些
+	int side = 3;
+
+	float maxSumGray = 0;
+	Point2f p;
+	Point2f fixCenter{ center };
+	//Mat gray = Mat::zeros(side, side, CV_32F);
+
+	// 对center邻域一点（i, j), 以(i, j)为中心，计算radius邻域的灰度和
+	for (int i = 0; i < side; i++)
+	{
+		for (int j = 0; j < side; j++)
+		{
+			float SUMGRAY; //以p点为中心的radius邻域灰度和
+			p.x = fixCenter.x - 1 + float(i);
+			p.y = fixCenter.y - 1 + float(j);
+			SUMGRAY = sumGray(src, p, radius);
+			//gray.at<float>(i, j) = SUMGRAY;
+			if (SUMGRAY > maxSumGray)
+			{
+				maxSumGray = SUMGRAY;
+				center.x = p.x;
+				center.y = p.y;
+			}
+		}
+	}
+
+	grayCenter(src, center, radius);
+}
+
 float getK(Mat src, std::vector<Vec4i> linesP, int threshold, int mimLineLength, int maxLineGap)
 {
 	Mat cdstP; float meanK;
@@ -463,7 +697,7 @@ bool cmp(const Point& a, const Point& b)
 	return a.x < b.x;
 }
 
-std::vector<LineData> getLineData(std::vector<KeyPoint>keyPoints, float k)
+std::vector<LineData> getLineData(std::vector<Point2f>keyPoints, float k)
 {
 	std::vector<LineData> lines;
 	const size_t ksize = keyPoints.size();
@@ -481,7 +715,7 @@ std::vector<LineData> getLineData(std::vector<KeyPoint>keyPoints, float k)
 		if (flag[i] == 0)
 		{
 			flag[i] = label; //标记该点
-			l.m_points.push_back(keyPoints[i].pt);
+			l.m_points.push_back(keyPoints[i]);
 			l.m_label = label;
 			for (size_t j = 0; j < ksize; j++)
 			{
@@ -489,11 +723,11 @@ std::vector<LineData> getLineData(std::vector<KeyPoint>keyPoints, float k)
 				{
 					// k1 表示pt(i) pt(j) 两点组成的斜率
 					//float k1 = 1.0 * (float(keyPoints[j].pt.y) - float(keyPoints[i].pt.y)) / (keyPoints[j].pt.x - keyPoints[i].pt.x);
-					int delta = keyPoints[j].pt.y - keyPoints[i].pt.y;
+					int delta = keyPoints[j].y - keyPoints[i].y;
 					if (delta < k && delta > -k)
 					{
 						flag[j] = label;
-						l.m_points.push_back(keyPoints[j].pt);
+						l.m_points.push_back(keyPoints[j]);
 					}
 				}
 			}

@@ -18,12 +18,18 @@
     <ClCompile Include="main.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="Thinning.cpp">
+    <ClCompile Include="GetCorner.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="LineData.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Thinning.h">
+    <ClInclude Include="GetCorner.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="LineData.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

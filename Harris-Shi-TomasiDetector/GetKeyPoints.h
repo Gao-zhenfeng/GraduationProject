@@ -22,12 +22,12 @@ struct LineData
 	LineData(std::vector<Point> points, int label, float k, float b);
 };
 
-Mat thinImage(const cv::Mat& src, const int maxIterations = -1);
-void filterOver(cv::Mat thinSrc);
-std::vector<cv::KeyPoint> getPoints(const cv::Mat& thinSrc, unsigned int raudis = 4, unsigned int thresholdMax = 6, unsigned int thresholdMin = 4);
+Mat drawCornerOnImage(Mat image, const Mat& binary);
 std::vector<cv::KeyPoint> getKeyPoints(std::vector<cv::KeyPoint> InputKeyPoints, int radius = 10);
 std::vector<Point> getLineAllPoint(Point2d p1, Point2d p2);
 float getK(Mat src, std::vector<Vec4i> linesP, int threshold, int mimLineLength, int maxLineGap);
 
 bool fitPoints(LineData& pts);
+
+bool cmp(const Point& a, const Point& b);
 std::vector<LineData> getLineData(std::vector<KeyPoint>keyPoints, float k);
