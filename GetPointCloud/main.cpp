@@ -15,10 +15,8 @@ using std::cout;
 
 int main()
 {
+	//读取相机内参矩阵、畸变矩阵和光平面参数
 	FileStorage fs{ "LinePlaneData.yml", FileStorage::READ };
-	fs::path fs2{ "l55cornerdata.txt" };
-	std::ofstream out1{ fs2, std::ios::out };
-
 	Matx33d M;//相机内参矩阵
 	fs["cameraMatrix"] >> M;
 	Matx41d distCoeffs; //相机畸变矩阵
@@ -34,6 +32,8 @@ int main()
 	fs.release();
 	//cout << abc << endl;
 
+	fs::path fs2{ "l55cornerdata.txt" };
+	std::ofstream out1{ fs2, std::ios::out };
 	Corner corners{ "../Picture/l55.bmp" , M, distCoeffs };
 	corners.getCorner();
 	Mat m = corners.m_keyPointsImage;
@@ -52,8 +52,9 @@ int main()
 						 M(1, 0), M(1, 1), M(1, 2) - v,
 							   a,        b,         -1 };
 			Matx31d b = { 0, 0, -c };
-			Matx31d X;
+			Matx31d X; //(xc, yc, zc)
 			solve(A, b, X);
+			// 向文件写入{u, v, i, j, xc, yc, zc}
 			out1 << std::setprecision(6) << std::fixed << u << "    " << v << "    "
 				<< i << "    " << j << "    " << X(0, 0) << "    " << X(1, 0)
 				<< "    " << X(2, 0) << endl;

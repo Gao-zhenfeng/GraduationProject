@@ -154,6 +154,21 @@ void LinePlane::planeFitting()
 	cv::solve(A, b, coeffient, DECOMP_QR);
 }
 
+// 将 { x y z} 以此顺序打印出来
+void LinePlane::printTXT(string filename)
+{
+	fs::path p1{ filename };
+	std::ofstream out1{ p1, std::ios::out };
+	size_t numOfPoints = m_points.size();
+
+	for (size_t i = 0; i < numOfPoints; i++)
+	{
+		out1 << std::setprecision(9) << std::fixed << m_points[i].x
+			<< "    " << m_points[i].y << "    " << m_points[i].z << endl;
+	}
+	out1.close();
+}
+
 Mat ReadMatFromTxt(string filename, int rows, int cols)
 {
 	double m;

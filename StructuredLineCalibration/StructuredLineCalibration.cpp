@@ -76,13 +76,14 @@ int main()
 	allImageCorner.push_back(Corner{ "../Picture/l55.bmp" }); allImageCorner[1].getCorner(); Mat m1 = allImageCorner[1].m_keyPointsImage;
 	allImageCorner.push_back(Corner{ "../Picture/l57.bmp" }); allImageCorner[2].getCorner(); Mat m2 = allImageCorner[2].m_keyPointsImage;
 	allImageCorner.push_back(Corner{ "../Picture/l59.bmp" }); allImageCorner[3].getCorner(); Mat m3 = allImageCorner[3].m_keyPointsImage;
-	int numOfImage = allImageCorner.size(); //4张图片
-	int numOfLines = allImageCorner[0].m_lines.size(); // 每张图片横向光条数量： 20
+	size_t numOfImage = allImageCorner.size(); //4张图片
+	size_t numOfLines = allImageCorner[0].m_lines.size(); // 每张图片横向光条数量： 20
 
-	for (int i = 0; i < numOfLines; i++)
+	// 计算光平面上的各点的三维坐标和光平面的参数，将相机内参、畸变参数、光平面参数写入XML文件
+	for (size_t i = 0; i < numOfLines; i++)
 	{
 		LinePlane lp;
-		for (int j = 0; j < numOfImage; j++)
+		for (size_t j = 0; j < numOfImage; j++)
 		{
 			// 每张图片的旋转矩阵和平移矩阵
 			Matx13d R = Matx13d{ rotation_matrix.at<double>(j, 0),
@@ -96,7 +97,25 @@ int main()
 		lp.planeFitting();
 		fs2 << "lineplane" + std::to_string(i) << lp.coeffient;
 	}
-
 	fs2.release();
+
+	// 计算标定板各点的三维坐标， 并写入文件
+	for (size_t i = 0; i < numOfImage; i++)
+	{
+		LinePlane imagePlane;
+		for (size_t j = 0; j < numOfLines; j++)
+		{
+			Matx13d R = Matx13d{ rotation_matrix.at<double>(i, 0),
+											rotation_matrix.at<double>(i, 1),
+												rotation_matrix.at<double>(i, 2) };
+			Matx13d t = Matx13d{ translation_vectors.at<double>(i, 0),
+									translation_vectors.at<double>(i, 1),
+										translation_vectors.at<double>(i, 2) };
+			imagePlane.addPoints(allImageCorner[i].m_lines[j], M, distCoeffs, R, t);
+		}
+		string filename = "Image" + std::to_string(i) + ".txt";
+		imagePlane.printTXT(filename);
+	}
+
 	return 0;
 }
