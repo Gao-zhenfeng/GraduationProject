@@ -15,7 +15,7 @@ int main(int argc, char** argv)
 {
 	double time1 = static_cast<double>(getTickCount());
 
-	Mat src = imread("E:\\课程资料\\毕设\\Program\\Graduation_Project\\Data\\20210526\\7l16.bmp", CV_8UC1);
+	Mat src = imread("E:\\课程资料\\毕设\\Program\\Graduation_Project\\Data\\20210526\\1l3.bmp", CV_8UC1);
 
 	Mat topHatImage;
 	Mat element = getStructuringElement(MORPH_ELLIPSE, Size(15, 15));

@@ -843,7 +843,8 @@ int updatePoint(const Mat& src, Mat& maskImage, Point2d& p, Point2d& nextPoint)
 {
 	double u0 = p.x;
 	double v0 = p.y;
-	maskImage.at<uchar>(v0, u0) = (uchar)150;
+	//标记该点
+	if (maskImage.at<uchar>(v0, u0) == 0) maskImage.at<uchar>(v0, u0) = (uchar)150;
 	std::vector<Point2d> points;
 	Mat roi_uchar{ src, Rect(u0 + 1, v0 - 1, 3, 3) };
 	Mat roi;
@@ -854,7 +855,8 @@ int updatePoint(const Mat& src, Mat& maskImage, Point2d& p, Point2d& nextPoint)
 	{
 		for (int j = 0; j < 3; j++)
 		{
-			maskImage.at<uchar>(v0 - 1 + j, u0 + 1 + i) = (uchar)150;
+			//标记该点
+			if (maskImage.at<uchar>(v0 - 1 + j, u0 + 1 + i) == 0) maskImage.at<uchar>(v0 - 1 + j, u0 + 1 + i) = (uchar)150;
 			if (roi.at<double>(j, i) != 0)
 			{
 				n_points++;
@@ -867,8 +869,8 @@ int updatePoint(const Mat& src, Mat& maskImage, Point2d& p, Point2d& nextPoint)
 	{
 		std::vector<Point2d> points5;
 		//扩大检测区域
-		int radius = 7;
-		int heng = 4;
+		int radius = 11;
+		int heng = 5;
 		Mat roi_uchar5{ src, Rect(u0 + 1, v0 - heng, radius ,  2 * heng + 1) };
 		Mat roi5;
 		roi_uchar5.convertTo(roi5, CV_64F);
@@ -877,9 +879,8 @@ int updatePoint(const Mat& src, Mat& maskImage, Point2d& p, Point2d& nextPoint)
 		{
 			for (int j = 0; j < 2 * heng + 1; j++)
 			{
-				maskImage.at<uchar>(v0 - heng + j, u0 + 1 + i) = (uchar)150;
+				if (maskImage.at<uchar>(v0 - heng + j, u0 + 1 + i) == 0) maskImage.at<uchar>(v0 - heng + j, u0 + 1 + i) = (uchar)150;
 				maskImage.at<uchar>(v0, u0) = (uchar)255;
-
 				if (roi5.at<double>(j, i) != 0)
 				{
 					n_5++;
@@ -931,8 +932,8 @@ int updatePoint(const Mat& src, Mat& maskImage, Point2d& p, Point2d& nextPoint)
 	else //邻域有多个点，说明此时在交点区域,扩大检测范围
 	{
 		std::vector<Point2d> points5;
-		int radius = 7;
-		int heng = 4;
+		int radius = 11;
+		int heng = 5;
 		Mat roi_uchar5{ src, Rect(u0 + 1, v0 - heng, radius, heng * 2 + 1) };
 		Mat roi5;
 		roi_uchar5.convertTo(roi5, CV_64F);
@@ -945,7 +946,7 @@ int updatePoint(const Mat& src, Mat& maskImage, Point2d& p, Point2d& nextPoint)
 				{
 					return 0;
 				}
-				maskImage.at<uchar>(v0 - heng + j, u0 + 1 + i) = (uchar)150;
+				if (maskImage.at<uchar>(v0 - heng + j, u0 + 1 + i) == 0) maskImage.at<uchar>(v0 - heng + j, u0 + 1 + i) = (uchar)150;
 				if (roi5.at<double>(j, i) != 0)
 				{
 					n_5++;

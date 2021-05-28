@@ -29,7 +29,7 @@ Corner::Corner(Mat& src)
 void Corner::getROI(const Mat& src, Mat& img_binary)
 {
 	Mat topHatImage;
-	Mat element = getStructuringElement(MORPH_ELLIPSE, Size(15, 15));
+	Mat element = getStructuringElement(MORPH_ELLIPSE, Size(10, 10));
 	morphologyEx(src, topHatImage, MORPH_TOPHAT, element);
 
 	//自适应二值化
@@ -559,11 +559,10 @@ void Corner::getAllLine()
 		{
 			int u0 = m_lines[i].m_points[j].x;
 			int v0 = m_lines[i].m_points[j].y;
-
+			//去畸变
 			m_keyPointsImage.at<Vec3b>(v0, u0) = Vec3b{ 47, 0, uchar(i * 10) };
 		}
 	}
-
 	for (size_t i = 0; i < numLINE; i++)
 	{
 		undistortPoints(m_lines[i].m_points, m_lines[i].m_points, m_cameramatrix, m_distCoeffs, cv::noArray(), m_cameramatrix);
@@ -785,5 +784,41 @@ int Corner::updatePoint(const Mat& src, Mat& maskImage, Point2d& p, Point2d& nex
 			}
 		}
 		return 1;
+	}
+}
+
+Mat findPlaneFuntction(Point2d p, Mat planeData)
+{
+	int row = planeData.rows;
+	for (int i = 0; i < row; i++)
+	{
+		double k1 = planeData.at<double>(i, 3);
+		double b1 = planeData.at<double>(i, 4);
+		double k2 = planeData.at<double>(i, 5);
+		double b2 = planeData.at<double>(i, 6);
+		if (k1 * 400 + b1 >= k2 * 400 + b2)
+		{
+			if (p.y > k2 * p.x + b2 && p.y <= k1 * p.x + b1)
+				return planeData.row(i);
+		}
+		else
+		{
+			if (p.y <= k2 * p.x + b2 && p.y > k1 * p.x + b1)
+				return planeData.row(i);
+		}
+		if (i == 0)
+		{
+			if (p.y < k1 * p.x + b1)
+			{
+				return planeData.row(i);
+			}
+		}
+		if (i == row - 1)
+		{
+			if (p.y > k2 * p.x + b2)
+			{
+				return planeData.row(i);
+			}
+		}
 	}
 }

@@ -15,7 +15,7 @@ using std::cout;
 
 int main()
 {
-	string rootpath = "../Data/20210522a/";
+	string rootpath = "../Data/20210526/";
 	//读取相机内参矩阵、畸变矩阵和光平面参数
 	FileStorage fs{ rootpath + "LinePlaneData.yml", FileStorage::READ };
 	Matx33d M;//相机内参矩阵
@@ -35,11 +35,11 @@ int main()
 	//}
 	//fs.release();
 	//cout << abc << endl;
-
-	fs::path fs2{ rootpath + "helmet.txt" };
+	string picturename = "0l1";
+	fs::path fs2{ rootpath + picturename + ".txt" };
 	std::ofstream out1{ fs2, std::ios::out };
-	Corner corners{ rootpath + "helmet.bmp" , M, distCoeffs };
-	corners.getCorner();
+	Corner corners{ rootpath + picturename + ".bmp" , M, distCoeffs };
+	corners.getAllLine();
 	Mat m = corners.m_keyPointsImage;
 	size_t numOfLines = corners.m_lines.size();
 	for (size_t i = 0; i < numOfLines; i++)
@@ -52,9 +52,12 @@ int main()
 		{
 			Mat planedata;
 			planedata = findPlaneFuntction(corners.m_lines[i].m_points[j], ABC);
-			double AA = planedata.at<double>(0, 1);
-			double B = planedata.at<double>(0, 2);
-			double C = planedata.at<double>(0, 3);
+			double AA = planedata.at<double>(0, 0);
+			double B = planedata.at<double>(0, 1);
+			double C = planedata.at<double>(0, 2);
+			//double AA = ABC.at<double>(0, 0);
+			//double B = ABC.at<double>(1, 0);
+			//double C = ABC.at<double>(2, 0);
 			double u = corners.m_lines[i].m_points[j].x;
 			double v = corners.m_lines[i].m_points[j].y;
 			Matx33d A = { M(0, 0), M(0, 1), M(0, 2) - u,
@@ -64,11 +67,11 @@ int main()
 			Matx31d X; //(xc, yc, zc)
 			solve(A, b, X);
 			// 向文件写入{u, v, i, j, xc, yc, zc}
-			//out1 << std::setprecision(6) << std::fixed << u << "    " << v << "    "
-			//	<< i << "    " << j << "    " << X(0, 0) << "    " << X(1, 0)
-			//	<< "    " << X(2, 0) << endl;
 			out1 << std::setprecision(6) << std::fixed << u << "    " << v << "    "
-				<< i << "    " << j << endl;
+				<< i << "    " << j << "    " << X(0, 0) << "    " << X(1, 0)
+				<< "    " << X(2, 0) << endl;
+			//out1 << std::setprecision(6) << std::fixed << u << "    " << v << "    "
+			//	<< i << "    " << j << endl;
 		}
 	}
 

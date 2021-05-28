@@ -83,10 +83,12 @@ int main()
 	std::vector<Corner> allImageCorner;
 	for (size_t i = 0; i < images.size(); i++)
 	{
-		allImageCorner.push_back(Corner{ images[i] });
+		allImageCorner.push_back(Corner{ images[i] , M, distCoeffs });
 		allImageCorner[i].getAllLine();
+		//m0作验证用
 		Mat m0 = allImageCorner[i].m_keyPointsImage;
 	}
+
 	size_t numOfImage = allImageCorner.size(); //n张图片
 	size_t numOfLines = allImageCorner[0].m_lines.size(); // 每张图片横向光条数量： 20
 	fs2 << "planes number" << int(numOfLines);
@@ -107,7 +109,7 @@ int main()
 	//		lp.addPoints(allImageCorner[j].m_lines[i], M, distCoeffs, R, t);
 	//	}
 	//	lp.planeFitting();
-	//	fs2 << "lineplane" + std::to_string(i) << lp.coeffient;
+	//	fs2 << "Lineplane" + std::to_string(i) << lp.coeffient;
 	//}
 	//fs2.release();
 
@@ -149,6 +151,7 @@ int main()
 				vconcat(lpcoeffient, tempCoeffient, lpcoeffient);
 			}
 		}
+		//cout << "Lineplane" + std::to_string(i) << "\n" << lpcoeffient;
 		fs2 << "Lineplane" + std::to_string(i) << lpcoeffient;
 	}
 	fs2.release();
