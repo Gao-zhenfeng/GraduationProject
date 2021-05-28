@@ -1,0 +1,23 @@
+clc;
+close all
+clear 
+figure;
+root = 'E:\课程资料\毕设\Program\Graduation_Project\Data\20210522a\';
+for i = 0 : 19
+    filename = [root , 'Image', int2str(i),'.txt'];
+    [u, v, xindex, yindex, x1, y1, z1] = textread(filename, '%f%f%f%f%f%f%f');
+    plot3(x1, y1, z1, 'o');
+    xlabel('X');
+    ylabel('Y');
+    zlabel('Z');
+    hold on
+end
+figure;
+for i = 0 : 19
+    filename = [root , 'Image', int2str(i),'.txt'];
+    [u, v, xindex, yindex, x1, y1, z1] = textread(filename, '%f%f%f%f%f%f%f');
+    plot(u(1 : ), v ,'o');
+    xlabel('X');
+    ylabel('Y');
+    hold on
+end

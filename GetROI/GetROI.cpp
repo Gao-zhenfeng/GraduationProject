@@ -13,7 +13,7 @@ int main(int argc, char** argv)
 {
 	double time1 = static_cast<double>(getTickCount());
 
-	Mat src = imread("../Picture/l52.bmp", CV_8UC1);
+	Mat src = imread("E:\\课程资料\\毕设\\Program\\Graduation_Project\\Data\\20210526\\l3.bmp", CV_8UC1);
 
 	Mat topHatImage;
 	Mat element = getStructuringElement(MORPH_ELLIPSE, Size(10, 10));
@@ -21,7 +21,7 @@ int main(int argc, char** argv)
 
 	//自适应二值化
 	Mat dst;
-	adaptiveThreshold(topHatImage, dst, 255, ADAPTIVE_THRESH_MEAN_C, THRESH_BINARY, 9, 0);
+	adaptiveThreshold(topHatImage, dst, 255, ADAPTIVE_THRESH_MEAN_C, THRESH_BINARY, 11, 0);
 	// 对图像进行开操作，断开狭窄的间断和消除细的突出物
 	//Mat element2 = getStructuringElement(MORPH_RECT, Size(2, 2));
 	//// 对img_binary膨胀，方便后面对灰度光条区域进行提取
@@ -61,7 +61,8 @@ int main(int argc, char** argv)
 	//// 对img_binary膨胀，方便后面对灰度光条区域进行提取
 	//morphologyEx(img_binary, dilateImgBinary, MORPH_OPEN, element3);
 
-	//imwrite("../Picture/I14.bmp", img_binary);
+	//imwrite("E:\\课程资料\\毕设\\Program\\Graduation_Project\\Data\\20210522a\\helmetROI.bmp", img_binary);
+
 	double time2 = (static_cast<double>(getTickCount()) - time1) / getTickFrequency();
 	cout << time2 << "s" << endl;
 	waitKey(0);

@@ -697,6 +697,10 @@ bool cmp(const Point& a, const Point& b)
 	return a.x < b.x;
 }
 
+bool cmpLineData(const LineData& a, const LineData& b)
+{
+	return a.m_label < b.m_label;
+}
 std::vector<LineData> getLineData(std::vector<Point2f>keyPoints, float k)
 {
 	std::vector<LineData> lines;
@@ -755,4 +759,219 @@ std::vector<LineData> getLineData(std::vector<Point2f>keyPoints, float k)
 	// 根据关键点的横坐标进行排序
 
 	return lines;
+}
+
+//对细化光条进行提取光条
+
+std::vector<LineData> classifyHorizonLines(Mat& src)
+{
+	std::vector<LineData> lines;//返回值
+	int rows = src.rows;//图像行数 1024
+	int cols = src.cols;//图像列数 1280
+	Mat maskImage = Mat::zeros(src.size(), CV_8UC1);
+	int label = 0;
+
+	for (int j = 0; j < cols; j++)
+	{
+		//int j = 400;
+		for (int i = 0; i < rows; i++)
+		{
+			if (src.at<uchar>(i, j) != 0 && maskImage.at<uchar>(i, j) == 0)
+			{
+				maskImage.at<uchar>(i, j) == uchar(150);
+				LineData horizonLine;
+				int flag;
+				Point2d p = Point2d{ double(j), double(i) };
+				horizonLine.m_points.push_back(p);
+				Point2d nextPoint;
+				while (updatePoint(src, maskImage, p, nextPoint))
+				{
+					horizonLine.m_points.push_back(nextPoint);
+					//更新p点坐标
+					p.x = nextPoint.x;
+					p.y = nextPoint.y;
+				}
+
+				// 对LineData计算参数，同时根据LineData 的标签标记maskImage
+				if (horizonLine.m_points.size() > 150)
+				{
+					horizonLine.m_label = label;
+					//标记maskImage
+					for (int k = 0; k < horizonLine.m_points.size(); k++)
+					{
+						int u = horizonLine.m_points[k].x;
+						int v = horizonLine.m_points[k].y;
+					}
+					fitPoints(horizonLine);//计算直线的截距与斜率
+					lines.push_back(horizonLine);
+					if (lines.size() == 20)
+					{
+						break;
+					}
+					label++;
+				}
+			}
+		}
+		if (lines.size() == 20)
+		{
+			break;
+		}
+	}
+
+	// 根据 b 值对各直线排序，对label进行更新， b 的值最小label为1，以此递增
+	std::vector<float> vlabel;
+	for (size_t i = 0; i < lines.size(); i++)
+	{
+		vlabel.push_back(lines[i].m_b);
+	}
+	sort(vlabel.begin(), vlabel.end());
+
+	//根据横坐标进行排序
+	for (size_t i = 0; i < lines.size(); i++)
+	{
+		std::vector<float>::iterator iter;
+		iter = std::find(vlabel.begin(), vlabel.end(), lines[i].m_b);
+		int pos = iter - vlabel.begin();
+		lines[i].m_label = pos;
+		sort(lines[i].m_points.begin(), lines[i].m_points.end(), cmp);
+	}
+	sort(lines.begin(), lines.end(), cmpLineData);
+	return lines;
+}
+
+int updatePoint(const Mat& src, Mat& maskImage, Point2d& p, Point2d& nextPoint)
+{
+	double u0 = p.x;
+	double v0 = p.y;
+	maskImage.at<uchar>(v0, u0) = (uchar)150;
+	std::vector<Point2d> points;
+	Mat roi_uchar{ src, Rect(u0 + 1, v0 - 1, 3, 3) };
+	Mat roi;
+	roi_uchar.convertTo(roi, CV_64F);
+	int n_points = 0;
+	//先检测3邻域内的点
+	for (int i = 0; i < 3; i++)
+	{
+		for (int j = 0; j < 3; j++)
+		{
+			maskImage.at<uchar>(v0 - 1 + j, u0 + 1 + i) = (uchar)150;
+			if (roi.at<double>(j, i) != 0)
+			{
+				n_points++;
+				points.push_back(Point2d{ u0 + 1 + i , v0 - 1 + j });
+			}
+		}
+	}
+
+	if (n_points == 0)//两种情况：（1）整条直线检测结束 （2）交点初漏检测
+	{
+		std::vector<Point2d> points5;
+		//扩大检测区域
+		int radius = 7;
+		int heng = 4;
+		Mat roi_uchar5{ src, Rect(u0 + 1, v0 - heng, radius ,  2 * heng + 1) };
+		Mat roi5;
+		roi_uchar5.convertTo(roi5, CV_64F);
+		int n_5 = 0;//五邻域内点
+		for (int i = 0; i < radius; i++)
+		{
+			for (int j = 0; j < 2 * heng + 1; j++)
+			{
+				maskImage.at<uchar>(v0 - heng + j, u0 + 1 + i) = (uchar)150;
+				maskImage.at<uchar>(v0, u0) = (uchar)255;
+
+				if (roi5.at<double>(j, i) != 0)
+				{
+					n_5++;
+					points5.push_back(Point2d{ u0 + 1 + i , v0 - heng + j });
+				}
+			}
+		}
+		if (n_5 != 0)
+		{
+			std::vector<int> v;
+			int maxY = 0;
+			//寻找邻域内具有最大横坐标的那个点，并将该点作为nextPoint
+			for (int i = 0; i < n_5; i++)
+			{
+				v.push_back(points5[i].x);
+				if (points5[i].x > maxY) maxY = points5[i].x;
+			}
+			for (int i = 0; i < n_5; i++)
+			{
+				if (points5[i].x == maxY)
+				{
+					nextPoint.x = points5[i].x;
+					nextPoint.y = points5[i].y;
+					maskImage.at<uchar>(nextPoint.y, nextPoint.x) = (uchar)255;
+					maskImage.at<uchar>(v0, u0) = (uchar)255;
+
+					return 1;
+				}
+			}
+		}
+		else
+		{
+			return 0;
+		}
+	}
+	else if (n_points == 1)//最常见情况,直接将非零点作为nextPoint
+	{
+		if (maskImage.at<uchar>(points[0].y, points[0].x) == 255)
+		{
+			return 0;
+		}
+		nextPoint.x = points[0].x;
+		nextPoint.y = points[0].y;
+		maskImage.at<uchar>(nextPoint.y, nextPoint.x) = (uchar)255;
+		maskImage.at<uchar>(v0, u0) = (uchar)255;
+
+		return 1;
+	}
+	else //邻域有多个点，说明此时在交点区域,扩大检测范围
+	{
+		std::vector<Point2d> points5;
+		int radius = 7;
+		int heng = 4;
+		Mat roi_uchar5{ src, Rect(u0 + 1, v0 - heng, radius, heng * 2 + 1) };
+		Mat roi5;
+		roi_uchar5.convertTo(roi5, CV_64F);
+		int n_5 = 0;//五邻域内点
+		for (int i = 0; i < radius; i++)
+		{
+			for (int j = 0; j < heng * 2 + 1; j++)
+			{
+				if (maskImage.at<uchar>(v0 - heng + j, u0 + 1 + i) == 255)
+				{
+					return 0;
+				}
+				maskImage.at<uchar>(v0 - heng + j, u0 + 1 + i) = (uchar)150;
+				if (roi5.at<double>(j, i) != 0)
+				{
+					n_5++;
+					points5.push_back(Point2d{ u0 + 1 + i , v0 - heng + j });
+				}
+			}
+		}
+		std::vector<int> v;
+		int maxY = 0;
+		//找到横坐标最大的那个点，作为nextPoint
+		for (int i = 0; i < n_5; i++)
+		{
+			v.push_back(points5[i].x);
+			if (points5[i].x > maxY) maxY = points5[i].x;
+		}
+
+		for (int i = 0; i < n_5; i++)
+		{
+			if (points5[i].x == maxY)
+			{
+				nextPoint.x = points5[i].x;
+				nextPoint.y = points5[i].y;
+				maskImage.at<uchar>(nextPoint.y, nextPoint.x) = (uchar)255;
+				maskImage.at<uchar>(v0, u0) = (uchar)255;
+			}
+		}
+		return 1;
+	}
 }

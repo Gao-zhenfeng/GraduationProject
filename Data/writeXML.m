@@ -14,9 +14,12 @@ docRootNode = docNode.getDocumentElement; %获取根节点
 IntrinsicMatrix = (cameraParams.IntrinsicMatrix)'; %相机内参矩阵
 RadialDistortion = cameraParams.RadialDistortion; %相机径向畸变参数向量1*3
 TangentialDistortion =cameraParams.TangentialDistortion; %相机切向畸变向量1*2
-Distortion = [RadialDistortion(1:2),TangentialDistortion,RadialDistortion(3)]; %构成opencv中的畸变系数向量[k1,k2,p1,p2,k3]
+Distortion = [RadialDistortion(1:2),TangentialDistortion]; %构成opencv中的畸变系数向量[k1,k2,p1,p2,k3]
+Rotation = cameraParams.RotationVectors;
+Translation = cameraParams.TranslationVectors;
 
-camera_matrix = docNode.createElement('camera-matrix'); %创建mat节点
+% 内参矩阵
+camera_matrix = docNode.createElement('intrinsic_matrix1'); %创建mat节点
 camera_matrix.setAttribute('type_id','opencv-matrix'); %设置mat节点属性
 rows = docNode.createElement('rows'); %创建行节点
 rows.appendChild(docNode.createTextNode(sprintf('%d',3))); %创建文本节点，并作为行的子节点
@@ -40,10 +43,11 @@ end
 camera_matrix.appendChild(data);
 docRootNode.appendChild(camera_matrix);
 
-distortion = docNode.createElement('distortion');
+% 畸变矩阵
+distortion = docNode.createElement('distortion_coeffs1');
 distortion.setAttribute('type_id','opencv-matrix');
 rows = docNode.createElement('rows');
-rows.appendChild(docNode.createTextNode(sprintf('%d',5)));
+rows.appendChild(docNode.createTextNode(sprintf('%d',4)));
 distortion.appendChild(rows);
 
 cols = docNode.createElement('cols');
@@ -54,13 +58,66 @@ dt = docNode.createElement('dt');
 dt.appendChild(docNode.createTextNode('d'));
 distortion.appendChild(dt);
 data = docNode.createElement('data');
-for i=1:5
+for i=1:4
       data.appendChild(docNode.createTextNode(sprintf('%.16f ',Distortion(i))));
 end
 distortion.appendChild(data);
-
 docRootNode.appendChild(distortion);
 
+
+% 旋转矩阵
+[rowRotation, colRotation]=size(Rotation);
+rotation = docNode.createElement('rotation_vectors1');
+rotation.setAttribute('type_id','opencv-matrix');
+rows = docNode.createElement('rows');
+rows.appendChild(docNode.createTextNode(sprintf('%d',rowRotation)));
+rotation.appendChild(rows);
+
+cols = docNode.createElement('cols');
+cols.appendChild(docNode.createTextNode(sprintf('%d',colRotation)));
+rotation.appendChild(cols);
+
+dt = docNode.createElement('dt');
+dt.appendChild(docNode.createTextNode('d'));
+rotation.appendChild(dt);
+data = docNode.createElement('data');
+
+for i=1: rowRotation
+    for j=1: colRotation
+        data.appendChild(docNode.createTextNode(sprintf('%.16f ',Rotation(i,j))));
+    end
+    data.appendChild(docNode.createTextNode(sprintf('\n')));
+end
+rotation.appendChild(data);
+docRootNode.appendChild(rotation);
+
+% 平移矩阵
+[rowRotation, colRotation]=size(Translation);
+translation = docNode.createElement('translation_vectors1');
+translation.setAttribute('type_id','opencv-matrix');
+rows = docNode.createElement('rows');
+rows.appendChild(docNode.createTextNode(sprintf('%d',rowRotation)));
+translation.appendChild(rows);
+
+cols = docNode.createElement('cols');
+cols.appendChild(docNode.createTextNode(sprintf('%d',colRotation)));
+translation.appendChild(cols);
+
+dt = docNode.createElement('dt');
+dt.appendChild(docNode.createTextNode('d'));
+translation.appendChild(dt);
+data = docNode.createElement('data');
+
+for i=1: rowRotation
+    for j=1: colRotation
+        data.appendChild(docNode.createTextNode(sprintf('%.16f ',Translation(i,j))));
+    end
+    data.appendChild(docNode.createTextNode(sprintf('\n')));
+end
+translation.appendChild(data);
+docRootNode.appendChild(translation);
+
+% writeXML(cameraParams, 'camera_coeffs.xml');
 xmlFileName = file;
 xmlwrite(xmlFileName,docNode);
 end

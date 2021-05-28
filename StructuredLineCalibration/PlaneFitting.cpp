@@ -11,7 +11,7 @@ LinePlane::LinePlane(std::vector<Point3d> points, int label) : m_label{ label }
 }
 
 // 对lines上二维点，求其三维坐标，
-LinePlane::LinePlane(LineData lines, Matx33d M, Matx41d distCoeffs, Matx13d R, Matx13d t)
+LinePlane::LinePlane(LineData& lines, Matx33d M, Matx41d distCoeffs, Matx13d R, Matx13d t)
 {
 	this->m_line = lines;
 	this->m_label = lines.m_label;
@@ -64,7 +64,7 @@ LinePlane::LinePlane(LineData lines, Matx33d M, Matx41d distCoeffs, Matx13d R, M
 	//out1.close();
 }
 
-void LinePlane::addPoints(LineData lines, Matx33d M, Matx41d distCoeffs, Matx13d R, Matx13d t)
+void LinePlane::addPoints(LineData& lines, Matx33d M, Matx41d distCoeffs, Matx13d R, Matx13d t)
 {
 	this->m_line = lines;
 	this->m_label = lines.m_label;
@@ -103,6 +103,41 @@ void LinePlane::addPoints(LineData lines, Matx33d M, Matx41d distCoeffs, Matx13d
 		double zc = X(2, 0);
 		Point3d p3 = Point3d{ xc, yc, zc };
 		this->m_points.push_back(p3);
+	}
+}
+
+void LinePlane::addPointsAndPrint(LineData& lines, Matx33d M, Matx41d distCoeffs, Matx13d R, Matx13d t, std::ofstream& out)
+{
+	this->m_line = lines;
+	this->m_label = lines.m_label;
+	std::vector<Point2d> UndistortPoints;
+	undistortPoints(lines.m_points, UndistortPoints, M, distCoeffs, cv::noArray(), M);
+	Matx33d RMatrix;
+	Rodrigues(R, RMatrix);
+
+	double c = RMatrix(0, 2) * t(0, 0) + RMatrix(1, 2) * t(0, 1) + RMatrix(2, 2) * t(0, 2);
+	Matx41d b = Matx41d{ 0, 0, 0,  c };
+	int sizeUts = UndistortPoints.size();
+	for (int i = 0; i < sizeUts; i++)
+	{
+		double u = UndistortPoints[i].x;
+		double v = UndistortPoints[i].y;
+		Matx44d A = Matx44d{
+							M(0, 0), M(0, 1), M(0, 2), -u,
+							M(1, 0), M(1, 1), M(1, 2), -v,
+							M(2, 0), M(2, 1), M(2, 2), -1,
+							RMatrix(0, 2), RMatrix(1, 2), RMatrix(2, 2), 0
+		};
+		Matx41d X;
+		solve(A, b, X);
+		double xc = X(0, 0);
+		double yc = X(1, 0);
+		double zc = X(2, 0);
+		Point3d p3 = Point3d{ xc, yc, zc };
+		this->m_points.push_back(p3);
+		out << std::setprecision(9) << std::fixed << lines.m_points[i].x << "    " << lines.m_points[i].y << "    " //u, v
+			<< lines.m_label << "    " << i << "    "	//xindex, yindex
+			<< xc << "    " << yc << "    " << zc << endl;	//x, y, z
 	}
 }
 

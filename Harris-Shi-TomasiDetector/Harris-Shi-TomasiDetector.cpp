@@ -12,9 +12,9 @@ using std::cout;
 int main()
 {
 	// graySrc 是提取到的光条区域，是一张二值图像
-	Mat graySrc = imread("../Picture/I14.bmp", CV_8UC1);
+	Mat graySrc = imread("../Picture/I9.bmp", CV_8UC1);
 	// 灰度图像
-	Mat src = imread("../Picture/I13.bmp", CV_8UC1);
+	Mat src = imread("../Picture/I10.bmp", CV_8UC1);
 	if (src.empty())
 	{
 		cout << "Can not open image. " << endl;

@@ -32,19 +32,20 @@ plot3(x, y, z, 'o');
 clc;
 close all;
 clear;
-filename = 'E:\课程资料\毕设\Program\Graduation_Project\StructuredLineCalibration\i55cornerdata.txt';
-[u, v, labelRow, labelCol, x, y, z] = textread(filename, '%f%f%f%f%f%f%f');
-maxRow = max(labelRow);
-maxCol = max(labelCol);
-data = [];
-index = 1;
-plot3(x, y, z, 'o');
+filename = 'E:\课程资料\毕设\Program\PointCloudData\ICP.txt';
+% [u, v, labelRow, labelCol, x, y, z] = textread(filename, '%f%f%f%f%f%f%f');
+% maxRow = max(labelRow);
+% maxCol = max(labelCol);
+% data = [];
+% index = 1;
+[x, y, z] = textread(filename, '%f%f%f');
+plot3(x, y, z,'o','Color','b','MarkerSize',1);
 hold on
 
-filename = 'E:\课程资料\毕设\Program\Graduation_Project\GetPointCloud\l55cornerdata.txt';
-[u, v, labelRow, labelCol, x, y, z] = textread(filename, '%f%f%f%f%f%f%f');
-plot3(x, y, z, 'o');
-hold on
+% filename = 'E:\课程资料\毕设\Program\Graduation_Project\GetPointCloud\l55cornerdata.txt';
+% [u, v, labelRow, labelCol, x, y, z] = textread(filename, '%f%f%f%f%f%f%f');
+% plot3(x, y, z, 'o');
+% hold on
 
 % filename = 'E:\课程资料\毕设\Program\Graduation_Project\StructuredLineCalibration\i57cornerdata.txt';
 % [u, v, labelRow, labelCol, x, y, z] = textread(filename, '%f%f%f%f%f%f%f');

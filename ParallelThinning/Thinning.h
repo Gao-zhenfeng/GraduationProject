@@ -38,3 +38,6 @@ bool fitPoints(LineData& pts);
 
 bool cmp(const Point& a, const Point& b);
 std::vector<LineData> getLineData(std::vector<Point2f>keyPoints, float k);
+
+std::vector<LineData> classifyHorizonLines(Mat& src);
+int updatePoint(const Mat& src, Mat& maskImage, Point2d& p, Point2d& nextPoint);
