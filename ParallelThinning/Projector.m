@@ -1,3 +1,13 @@
+%%
+clc;
+clear;
+close all;
+src = imread('E:\课程资料\毕设\开题报告&论文\毕业论文\binary.png');
+src = rgb2gray(src);
+src = src / 255;
+L = logical(src);
+
+%%
 clc;
 clear;
 close all;

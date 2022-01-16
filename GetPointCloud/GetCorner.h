@@ -34,11 +34,14 @@ public:
 
 	std::vector<LineData> getLineData(std::vector<Point2d>keyPoints, float k);
 
-	//获取直线
+	//使用光条上所有点
 	void getAllLine();
+	//获取各条横光条
 	int updatePoint(const Mat& src, Mat& maskImage, Point2d& p, Point2d& nextPoint);
-
 	std::vector<LineData> classifyHorizonLines(Mat& src);
+	//获取各条踪纵光条
+	std::vector<LineData> classifyVerticalLines(Mat& src);
+	int updateColsPoint(const Mat& src, Mat& maskImage, Point2d& p, Point2d& nextPoint);
 
 	Mat m_src; //原图
 	Mat m_img_binary; //对原图做区域提取
@@ -49,5 +52,7 @@ public:
 	Matx41d m_distCoeffs;
 };
 bool cmpLineData(const LineData& a, const LineData& b);
+bool cmpVerticalLineData(const LineData& a, const LineData& b);
 
 Mat findPlaneFuntction(Point2d p, Mat planeData);
+Mat findVerticalPlaneFuntction(Point2d p, Mat planeData);

@@ -29,12 +29,26 @@ Corner::Corner(Mat& src)
 void Corner::getROI(const Mat& src, Mat& img_binary)
 {
 	Mat topHatImage;
-	Mat element = getStructuringElement(MORPH_ELLIPSE, Size(15, 15));
+	Mat element = getStructuringElement(MORPH_ELLIPSE, Size(20, 20));
 	morphologyEx(src, topHatImage, MORPH_TOPHAT, element);
+	for (size_t i = 0; i < topHatImage.rows; i++)
+	{
+		for (size_t j = 0; j < topHatImage.cols; j++)
+		{
+			if (topHatImage.at<uchar>(i, j) < 20)
+			{
+				topHatImage.at<uchar>(i, j) = 0;
+			}
+		}
+	}
 
 	//自适应二值化
 	Mat dst;
-	adaptiveThreshold(topHatImage, dst, 255, ADAPTIVE_THRESH_MEAN_C, THRESH_BINARY, 15, 0);
+	adaptiveThreshold(topHatImage, dst, 255, ADAPTIVE_THRESH_MEAN_C, THRESH_BINARY, 7, 0);
+	// 对图像进行开操作，断开狭窄的间断和消除细的突出物
+	Mat element2 = getStructuringElement(MORPH_RECT, Size(3, 3));
+	//// 对dst膨胀，方便后面对灰度光条区域进行提取
+	morphologyEx(dst, dst, MORPH_CLOSE, element2);
 
 	Mat labels, stats, centroids;
 	int i;
@@ -63,6 +77,11 @@ void Corner::getROI(const Mat& src, Mat& img_binary)
 			img_binary.at<uchar>(y, x) = colors[label];
 		}
 	}
+
+	////对image_binary作close
+	//Mat element3 = getStructuringElement(MORPH_RECT, Size(5, 5));
+	////// 对img_binary膨胀，方便后面对灰度光条区域进行提取
+	//morphologyEx(img_binary, img_binary, MORPH_CLOSE, element3);
 }
 
 void Corner::cvThin(cv::Mat& src, cv::Mat& dst, int intera)
@@ -506,19 +525,148 @@ std::vector<LineData> Corner::getLineData(std::vector<Point2d>keyPoints, float k
 	{
 		for (int j = 0; j < lines[i].m_points.size(); j++)
 		{
-			String s = "(" + std::to_string(lines[i].m_label) + "," + std::to_string(j) + ")";
+			String s = std::to_string(lines[i].m_label) + "," + std::to_string(j);
 			//cout << lines[i].m_points[j].x << "  " << lines[i].m_points[j].y << "  "
 				//<< lines[i].m_k << "  " << lines[i].m_b << "  " << lines[i].m_label << endl;
 			circle(m_keyPointsImage, lines[i].m_points[j], 1, Scalar(255, 0, 0), -1);
-			putText(m_keyPointsImage, s, lines[i].m_points[j], FONT_HERSHEY_SIMPLEX, 0.25, Scalar(0, 0, 255), 1, LINE_AA);//在图片上写文字
+			putText(m_keyPointsImage, s, lines[i].m_points[j], FONT_HERSHEY_SIMPLEX, 0.20, Scalar(0, 0, 255), 1, LINE_AA);//在图片上写文字
 		}
 	}
 	return lines;
 }
 
+std::vector<LineData> Corner::sortKeyPoints(std::vector<Point2d>& keyPoints)
+{
+	std::vector<LineData> lines;//存放排序编号后的点
+	std::vector<int> flag;
+	//生成一个与keyPoints同等长度的向量，作为判断依据，如果某元素置1则不在遍历该元素
+	for (size_t i = 0; i < keyPoints.size(); i++)
+	{
+		flag.push_back(0);
+	}
+
+	//先编码横向光条
+	for (size_t i = 0; i < 20; i++)
+	{
+		LineData ld;
+		double k = m_linePoints[i].m_k;
+		double b = m_linePoints[i].m_b;
+		for (size_t j = 0; j < keyPoints.size(); j++)
+		{
+			if (flag[j] != 0) continue;
+			double x = keyPoints[j].x;
+			double y = keyPoints[j].y;
+			double distance;//判断该点离哪条直线最近
+
+			distance = abs(k * x - y + b) / (sqrt(k * k + 1));
+
+			if (distance < 5) // 距离小于一定值说明在该直线上
+			{
+				ld.m_points.push_back(Point2d{ x, y });
+				flag[j] == 1;
+			}
+		}
+		fitPoints(ld);
+		ld.m_label = i;
+		lines.push_back(ld);
+	}
+
+	std::vector<int> flag2;
+	for (size_t i = 0; i < keyPoints.size(); i++)
+	{
+		flag2.push_back(0);
+	}
+	// 分类纵向光条
+	for (size_t i = 20; i < m_linePoints.size(); i++)
+	{
+		LineData ld;
+		double k = m_linePoints[i].m_k;
+		double b = m_linePoints[i].m_b;
+		for (size_t j = 0; j < keyPoints.size(); j++)
+		{
+			if (flag2[j] != 0) continue;
+
+			double x = keyPoints[j].x;
+			double y = keyPoints[j].y;
+			double distance;//判断该点离哪条直线最近
+
+			distance = abs(x - k * y - b) / (sqrt(k * k + 1));
+			if (distance < 5) // 距离小于一定值说明在该直线上
+			{
+				ld.m_points.push_back(Point2d{ x, y });
+				flag2[j] == 1;
+			}
+		}
+		fitPoints(ld);//对(u, v)拟合直线
+		double normalK = ld.m_k;
+		double normalB = ld.m_b;
+		//将直线方程转换为 x = y/k - b/k
+		ld.m_k = 1 / normalK;
+		ld.m_b = -normalB / normalK;
+		ld.m_label = i;
+		lines.push_back(ld);
+	}
+
+	// 根据 b 值对各直线排序，对label进行更新， b 的值最小label为1，以此递增
+	std::vector<float> vlabel;
+	for (size_t i = 0; i < 20; i++)
+	{
+		vlabel.push_back(lines[i].m_b);
+	}
+	//根据b对横光条排序
+	sort(vlabel.begin(), vlabel.end());
+	for (size_t i = 0; i < 20; i++)
+	{
+		std::vector<float>::iterator iter;
+		iter = std::find(vlabel.begin(), vlabel.end(), lines[i].m_b);
+		int pos = iter - vlabel.begin();
+		lines[i].m_label = pos;
+		sort(lines[i].m_points.begin(), lines[i].m_points.end(), cmp);
+	}
+
+	std::vector<float> vlabel2;//纵光条的b生成一个向量
+	for (size_t i = 20; i < 40; i++)
+	{
+		vlabel2.push_back(lines[i].m_b);
+	}
+	//根据b对纵光条排序
+	for (size_t i = 20; i < 40; i++)
+	{
+		std::vector<float>::iterator iter;
+		iter = std::find(vlabel2.begin(), vlabel2.end(), lines[i].m_b);
+		int pos = iter - vlabel2.begin();
+		lines[i].m_label = pos;
+		sort(lines[i].m_points.begin(), lines[i].m_points.end(), cmp);
+	}
+
+	// 作图
+	for (int i = 0; i < lines.size(); i++)
+	{
+		for (int j = 0; j < lines[i].m_points.size(); j++)
+		{
+			if (i < 20) //横向光条编码显示
+			{
+				String s = std::to_string(lines[i].m_label);
+				circle(m_keyPointsImage, lines[i].m_points[j], 1, Scalar(255, 0, 0), -1);
+				putText(m_keyPointsImage, s, lines[i].m_points[j], FONT_HERSHEY_SIMPLEX, 0.35, Scalar(0, 0, 255), 1, LINE_AA);//在图片上写文字
+			}
+			else //纵向光条编码显示
+			{
+				String s = std::to_string(lines[i].m_label);
+				circle(m_keyPointsImage, lines[i].m_points[j], 1, Scalar(255, 0, 0), -1);
+				Point2d p;
+				p.x = lines[i].m_points[j].x;
+				p.y = lines[i].m_points[j].y + 8;
+				putText(m_keyPointsImage, s, p, FONT_HERSHEY_SIMPLEX, 0.35, Scalar(0, 0, 255), 1, LINE_AA);//在图片上写文字
+			}
+		}
+	}
+
+	return lines;
+}
+
 void Corner::getCorner()
 {
-	medianBlur(m_img_binary, m_img_binary, 3);
 	Mat dst = m_img_binary / 255;
 
 	Mat thinsrc;
@@ -531,15 +679,18 @@ void Corner::getCorner()
 	//对扎堆角点做均值
 	m_keyPoints = getKeyPoints(roughKeyPoints, 10);
 	//绘制keyPoints
+	Mat tempImage;
+	cvtColor(m_src, tempImage, COLOR_GRAY2RGB);
 	cvtColor(m_src, m_keyPointsImage, COLOR_GRAY2RGB);
+
 	for (size_t i = 0; i < m_keyPoints.size(); i++)
 	{
 		grayCenter(m_src, m_keyPoints[i], 2);
-		//preciseCorner(graySrc, keyPoints[i].pt, 2);
-		//circle(m_keyPointsImage, m_keyPoints[i], 1, Scalar(0, 0, 255), FILLED);
+		//preciseCorner(m_src, m_keyPoints[i], 3);
+		circle(tempImage, m_keyPoints[i], 1, Scalar(0, 0, 255), FILLED);
 	}
-
-	m_lines = getLineData(m_keyPoints, 9);
+	//对获取的交点分类
+	m_lines = sortKeyPoints(m_keyPoints);
 }
 
 void Corner::getAllLine()
@@ -549,24 +700,26 @@ void Corner::getAllLine()
 	cvThin(dst, thinsrc, 5);
 	filterOver(thinsrc);
 	Mat thinImage = thinsrc * 255;
-	this->m_lines = classifyHorizonLines(thinImage);
-	//验证画到m_keyPointsImage上
-	cvtColor(m_src, m_keyPointsImage, COLOR_GRAY2RGB);
-	int numLINE = m_lines.size();
+	this->m_linePoints = classifyHorizonLines(thinImage);
+	std::vector<LineData> verticalLines = classifyVerticalLines(thinImage);
+	m_linePoints.insert(m_linePoints.end(), verticalLines.begin(), verticalLines.end());
+	//验证画到m_skeletonImage上
+	cvtColor(m_src, m_skeletonImage, COLOR_GRAY2RGB);
+	int numLINE = m_linePoints.size();
 	for (size_t i = 0; i < numLINE; i++)
 	{
-		for (size_t j = 0; j < m_lines[i].m_points.size(); j++)
+		for (size_t j = 0; j < m_linePoints[i].m_points.size(); j++)
 		{
-			int u0 = m_lines[i].m_points[j].x;
-			int v0 = m_lines[i].m_points[j].y;
+			int u0 = m_linePoints[i].m_points[j].x;
+			int v0 = m_linePoints[i].m_points[j].y;
 
-			m_keyPointsImage.at<Vec3b>(v0, u0) = Vec3b{ 47, 0, uchar(i * 10) };
+			m_skeletonImage.at<Vec3b>(v0, u0) = Vec3b{ 47, 0, uchar(i * 5) };
 		}
 	}
 
 	for (size_t i = 0; i < numLINE; i++)
 	{
-		undistortPoints(m_lines[i].m_points, m_lines[i].m_points, m_cameramatrix, m_distCoeffs, cv::noArray(), m_cameramatrix);
+		undistortPoints(m_linePoints[i].m_points, m_linePoints[i].m_points, m_cameramatrix, m_distCoeffs, cv::noArray(), m_cameramatrix);
 	}
 }
 
@@ -607,12 +760,6 @@ std::vector<LineData> Corner::classifyHorizonLines(Mat& src)
 				if (horizonLine.m_points.size() > 150)
 				{
 					horizonLine.m_label = label;
-					//标记maskImage
-					for (int k = 0; k < horizonLine.m_points.size(); k++)
-					{
-						int u = horizonLine.m_points[k].x;
-						int v = horizonLine.m_points[k].y;
-					}
 					fitPoints(horizonLine);//计算直线的截距与斜率
 					lines.push_back(horizonLine);
 					if (lines.size() == 20)
@@ -762,6 +909,221 @@ int Corner::updatePoint(const Mat& src, Mat& maskImage, Point2d& p, Point2d& nex
 				{
 					n_5++;
 					points5.push_back(Point2d{ u0 + 1 + i , v0 - heng + j });
+				}
+			}
+		}
+		std::vector<int> v;
+		int maxY = 0;
+		//找到横坐标最大的那个点，作为nextPoint
+		for (int i = 0; i < n_5; i++)
+		{
+			v.push_back(points5[i].x);
+			if (points5[i].x > maxY) maxY = points5[i].x;
+		}
+
+		for (int i = 0; i < n_5; i++)
+		{
+			if (points5[i].x == maxY)
+			{
+				nextPoint.x = points5[i].x;
+				nextPoint.y = points5[i].y;
+				maskImage.at<uchar>(nextPoint.y, nextPoint.x) = (uchar)255;
+				maskImage.at<uchar>(v0, u0) = (uchar)255;
+			}
+		}
+		return 1;
+	}
+}
+
+bool cmpVerticalLineData(const LineData& a, const LineData& b)
+{
+	return a.m_label < b.m_label;
+}
+
+std::vector<LineData> Corner::classifyVerticalLines(Mat& src)
+{
+	std::vector<LineData> lines;//返回值
+	int rows = src.rows;//图像行数 1024
+	int cols = src.cols;//图像列数 1280
+	Mat maskImage = Mat::zeros(src.size(), CV_8UC1);
+	int label = 20;
+	//逐行遍历
+	for (int i = 0; i < rows; i++)
+	{
+		for (int j = 0; j < cols; j++)
+		{
+			if (src.at<uchar>(i, j) != 0 && maskImage.at<uchar>(i, j) == 0)
+			{
+				maskImage.at<uchar>(i, j) == uchar(150);
+				LineData horizonLine;
+				int flag;
+				Point2d p = Point2d{ double(j), double(i) };
+				horizonLine.m_points.push_back(p);
+				Point2d nextPoint;
+				while (updateColsPoint(src, maskImage, p, nextPoint))
+				{
+					horizonLine.m_points.push_back(nextPoint);
+					//更新p点坐标
+					p.x = nextPoint.x;
+					p.y = nextPoint.y;
+				}
+
+				// 对LineData计算参数，同时根据LineData 的标签标记maskImage
+				if (horizonLine.m_points.size() > 70)
+				{
+					horizonLine.m_label = label;
+					//此时直线方程为 y = kx + b
+					fitPoints(horizonLine);//计算直线的截距与斜率
+					double normalK = horizonLine.m_k;
+					double normalB = horizonLine.m_b;
+					//将直线方程转换为 x = y/k - b/k
+					horizonLine.m_k = 1 / normalK;
+					horizonLine.m_b = -normalB / normalK;
+					lines.push_back(horizonLine);
+					if (lines.size() == 20)
+					{
+						break;
+					}
+					label++;
+				}
+			}
+		}
+		if (lines.size() == 20)
+		{
+			break;
+		}
+	}
+
+	// 根据 b 值对各直线排序，对label进行更新， b 的值最小label为1，以此递增
+	std::vector<float> vlabel;
+	for (size_t i = 0; i < lines.size(); i++)
+	{
+		vlabel.push_back(lines[i].m_b);
+	}
+	sort(vlabel.begin(), vlabel.end());
+
+	//根据横坐标进行排序
+	for (size_t i = 0; i < lines.size(); i++)
+	{
+		std::vector<float>::iterator iter;
+		iter = std::find(vlabel.begin(), vlabel.end(), lines[i].m_b);
+		int pos = iter - vlabel.begin();
+		lines[i].m_label = pos + 20;
+		sort(lines[i].m_points.begin(), lines[i].m_points.end(), cmp);
+	}
+	sort(lines.begin(), lines.end(), cmpVerticalLineData);
+	return lines;
+}
+
+int Corner::updateColsPoint(const Mat& src, Mat& maskImage, Point2d& p, Point2d& nextPoint)
+{
+	//向纵向搜寻
+	double u0 = p.x;
+	double v0 = p.y;
+	//标记该点
+	if (maskImage.at<uchar>(v0, u0) == 0) maskImage.at<uchar>(v0, u0) = (uchar)150;
+	std::vector<Point2d> points;
+	Mat roi_uchar{ src, Rect(u0 - 1, v0 + 1, 3, 3) };
+	Mat roi;
+	roi_uchar.convertTo(roi, CV_64F);
+	int n_points = 0;
+	//先检测3邻域内的点
+	for (int i = 0; i < 3; i++)
+	{
+		for (int j = 0; j < 3; j++)
+		{
+			//标记该点
+			if (maskImage.at<uchar>(v0 + 1 + j, u0 - 1 + i) == 0) maskImage.at<uchar>(v0 + 1 + j, u0 - 1 + i) = (uchar)150;
+			if (roi.at<double>(j, i) != 0)
+			{
+				n_points++;
+				points.push_back(Point2d{ u0 - 1 + i , v0 + 1 + j });
+			}
+		}
+	}
+
+	if (n_points == 0)//两种情况：（1）整条直线检测结束 （2）交点初漏检测
+	{
+		std::vector<Point2d> points5;
+		//扩大检测区域
+		Mat roi_uchar5{ src, Rect(u0 - 5, v0 + 1, 11 ,  11) };
+		Mat roi5;
+		roi_uchar5.convertTo(roi5, CV_64F);
+		int n_5 = 0;//五邻域内点
+		for (int i = 0; i < 11; i++)
+		{
+			for (int j = 0; j < 11; j++)
+			{
+				if (maskImage.at<uchar>(v0 + 1 + j, u0 - 5 + i) == 0) maskImage.at<uchar>(v0 + 1 + j, u0 - 5 + i) = (uchar)150;
+				maskImage.at<uchar>(v0, u0) = (uchar)255;
+				if (roi5.at<double>(j, i) != 0)
+				{
+					n_5++;
+					points5.push_back(Point2d{ u0 - 5 + i , v0 + 1 + j });
+				}
+			}
+		}
+		if (n_5 != 0)
+		{
+			std::vector<int> v;
+			int maxY = 0;
+			//寻找邻域内具有最大横坐标的那个点，并将该点作为nextPoint
+			for (int i = 0; i < n_5; i++)
+			{
+				v.push_back(points5[i].x);
+				if (points5[i].x > maxY) maxY = points5[i].x;
+			}
+			for (int i = 0; i < n_5; i++)
+			{
+				if (points5[i].x == maxY)
+				{
+					nextPoint.x = points5[i].x;
+					nextPoint.y = points5[i].y;
+					maskImage.at<uchar>(nextPoint.y, nextPoint.x) = (uchar)255;
+					maskImage.at<uchar>(v0, u0) = (uchar)255;
+
+					return 1;
+				}
+			}
+		}
+		else
+		{
+			return 0;
+		}
+	}
+	else if (n_points == 1)//最常见情况,直接将非零点作为nextPoint
+	{
+		if (maskImage.at<uchar>(points[0].y, points[0].x) == 255)
+		{
+			return 0;
+		}
+		nextPoint.x = points[0].x;
+		nextPoint.y = points[0].y;
+		maskImage.at<uchar>(nextPoint.y, nextPoint.x) = (uchar)255;
+		maskImage.at<uchar>(v0, u0) = (uchar)255;
+
+		return 1;
+	}
+	else //邻域有多个点，说明此时在交点区域,扩大检测范围
+	{
+		std::vector<Point2d> points5;
+		Mat roi_uchar5{ src, Rect(u0 - 5, v0 + 1, 11, 11) };
+		Mat roi5;
+		roi_uchar5.convertTo(roi5, CV_64F);
+		int n_5 = 0;//五邻域内点
+		for (int i = 0; i < 11; i++)
+		{
+			for (int j = 0; j < 11; j++)
+			{
+				if (maskImage.at<uchar>(v0 + 1 + j, u0 - 5 + i) == 255)
+				{
+					return 0;
+				}
+				if (maskImage.at<uchar>(v0 + 1 + j, u0 - 5 + i) == 0) maskImage.at<uchar>(v0 + 1 + j, u0 - 5 + i) = (uchar)150;
+				if (roi5.at<double>(j, i) != 0)
+				{
+					n_5++;
+					points5.push_back(Point2d{ u0 - 5 + i , v0 + 1 + j });
 				}
 			}
 		}

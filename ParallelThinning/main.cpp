@@ -15,20 +15,30 @@ int main(int argc, char** argv)
 {
 	double time1 = static_cast<double>(getTickCount());
 
-	Mat src = imread("E:\\课程资料\\毕设\\Program\\Graduation_Project\\Data\\20210526\\1l3.bmp", CV_8UC1);
+	Mat src = imread("E:\\课程资料\\毕设\\Program\\Graduation_Project\\Data\\0.5mm\\light\\l1.bmp", CV_8UC1);
+	medianBlur(src, src, 3);
 
 	Mat topHatImage;
 	Mat element = getStructuringElement(MORPH_ELLIPSE, Size(15, 15));
 	morphologyEx(src, topHatImage, MORPH_TOPHAT, element);
-
+	for (size_t i = 0; i < topHatImage.rows; i++)
+	{
+		for (size_t j = 0; j < topHatImage.cols; j++)
+		{
+			if (topHatImage.at<uchar>(i, j) < 5)
+			{
+				topHatImage.at<uchar>(i, j) = 0;
+			}
+		}
+	}
 	//自适应二值化
 	Mat dst;
-	adaptiveThreshold(topHatImage, dst, 255, ADAPTIVE_THRESH_MEAN_C, THRESH_BINARY, 15, 0);
-	// 对图像进行开操作，断开狭窄的间断和消除细的突出物
-	//Mat element2 = getStructuringElement(MORPH_RECT, Size(2, 2));
-	//// 对img_binary膨胀，方便后面对灰度光条区域进行提取
-	//morphologyEx(dst, dst, MORPH_ERODE, element2);
-	//medianBlur(dst, dst, 3);
+	adaptiveThreshold(topHatImage, dst, 255, ADAPTIVE_THRESH_MEAN_C, THRESH_BINARY, 9, 0);
+
+	//// 对图像进行开操作，断开狭窄的间断和消除细的突出物
+	Mat element2 = getStructuringElement(MORPH_RECT, Size(3, 3));
+	////// 对img_binary膨胀，方便后面对灰度光条区域进行提取
+	morphologyEx(dst, dst, MORPH_CLOSE, element2);
 
 	Mat labels, stats, centroids;
 	int i;
@@ -58,16 +68,16 @@ int main(int argc, char** argv)
 		}
 	}
 
-	//medianBlur(img_binary, img_binary, 3);
+	// 对图像进行开操作，断开狭窄的间断和消除细的突出物
+	Mat element3 = getStructuringElement(MORPH_RECT, Size(5, 5));
+	//// 对img_binary膨胀，方便后面对灰度光条区域进行提取
+	morphologyEx(img_binary, img_binary, MORPH_CLOSE, element3);
 
 	/*mask(r1).setTo(255);
 	Mat maskSrc;
 	src.copyTo(maskSrc, mask);*/
 
 	dst = img_binary / 255;
-	//medianBlur(src, dst, 3);
-	//adaptiveThreshold(dst, dst, 1, ADAPTIVE_THRESH_GAUSSIAN_C, THRESH_BINARY, 7, 0);
-	//medianBlur(dst, dst, 5);
 
 	Mat thinsrc;
 	cvThin(dst, thinsrc, 5);
@@ -84,7 +94,10 @@ int main(int argc, char** argv)
 	//	p.y = nextPoint.y;
 	//}
 
+	//对横纵光条进行分类
 	std::vector<LineData> LINE = classifyHorizonLines(thinImage);
+	std::vector<LineData> LINE2 = classifyVerticalLines(thinImage);
+	LINE.insert(LINE.end(), LINE2.begin(), LINE2.end());
 	Mat temp;
 	cvtColor(src, temp, COLOR_GRAY2RGB);
 	int numLINE = LINE.size();
@@ -95,7 +108,7 @@ int main(int argc, char** argv)
 			int u0 = LINE[i].m_points[j].x;
 			int v0 = LINE[i].m_points[j].y;
 
-			temp.at<Vec3b>(v0, u0) = Vec3b{ 47, 0, uchar(i * 10) };
+			temp.at<Vec3b>(v0, u0) = Vec3b{ 47, 0, uchar(i * 5) };
 		}
 	}
 	imwrite("temp.bmp", temp);
@@ -172,11 +185,17 @@ int main(int argc, char** argv)
 	{
 		for (size_t j = 0; j < lines[i].m_points.size(); j++)
 		{
-			String s = "(" + std::to_string(lines[i].m_label) + "," + std::to_string(j) + ")";
+			String s = std::to_string(lines[i].m_label);
+			String s2 = std::to_string(j);
+
 			//cout << lines[i].m_points[j].x << "  " << lines[i].m_points[j].y << "  "
 				//<< lines[i].m_k << "  " << lines[i].m_b << "  " << lines[i].m_label << endl;
 			circle(rgbSRC, lines[i].m_points[j], 1, Scalar(255, 0, 0), -1);
-			putText(rgbSRC, s, lines[i].m_points[j], FONT_HERSHEY_SIMPLEX, 0.25, Scalar(0, 0, 255), 1, LINE_AA);//在图片上写文字
+			Point2d p;
+			p.x = lines[i].m_points[j].x;
+			p.y = lines[i].m_points[j].y + 10;
+			putText(rgbSRC, s, lines[i].m_points[j], FONT_HERSHEY_SIMPLEX, 0.4, Scalar(0, 0, 255), 1, LINE_AA);//在图片上写文字
+			putText(rgbSRC, s2, p, FONT_HERSHEY_SIMPLEX, 0.4, Scalar(0, 0, 255), 1, LINE_AA);//在图片上写文字
 		}
 	}
 

@@ -29,12 +29,26 @@ Corner::Corner(Mat& src)
 void Corner::getROI(const Mat& src, Mat& img_binary)
 {
 	Mat topHatImage;
-	Mat element = getStructuringElement(MORPH_ELLIPSE, Size(10, 10));
+	Mat element = getStructuringElement(MORPH_ELLIPSE, Size(15, 15));
 	morphologyEx(src, topHatImage, MORPH_TOPHAT, element);
+	for (size_t i = 0; i < topHatImage.rows; i++)
+	{
+		for (size_t j = 0; j < topHatImage.cols; j++)
+		{
+			if (topHatImage.at<uchar>(i, j) < 20)
+			{
+				topHatImage.at<uchar>(i, j) = 0;
+			}
+		}
+	}
 
 	//自适应二值化
 	Mat dst;
 	adaptiveThreshold(topHatImage, dst, 255, ADAPTIVE_THRESH_MEAN_C, THRESH_BINARY, 15, 0);
+	// 对图像进行开操作，断开狭窄的间断和消除细的突出物
+	Mat element2 = getStructuringElement(MORPH_RECT, Size(3, 3));
+	// 对dst膨胀，方便后面对灰度光条区域进行提取
+	morphologyEx(dst, dst, MORPH_CLOSE, element2);
 
 	Mat labels, stats, centroids;
 	int i;
@@ -63,6 +77,11 @@ void Corner::getROI(const Mat& src, Mat& img_binary)
 			img_binary.at<uchar>(y, x) = colors[label];
 		}
 	}
+
+	//对image_binary作close
+	Mat element3 = getStructuringElement(MORPH_RECT, Size(5, 5));
+	//// 对img_binary膨胀，方便后面对灰度光条区域进行提取
+	morphologyEx(img_binary, img_binary, MORPH_CLOSE, element3);
 }
 
 void Corner::cvThin(cv::Mat& src, cv::Mat& dst, int intera)
@@ -550,6 +569,8 @@ void Corner::getAllLine()
 	filterOver(thinsrc);
 	Mat thinImage = thinsrc * 255;
 	this->m_lines = classifyHorizonLines(thinImage);
+	std::vector<LineData> verticalLines = classifyVerticalLines(thinImage);
+	m_lines.insert(m_lines.end(), verticalLines.begin(), verticalLines.end());
 	//验证画到m_keyPointsImage上
 	cvtColor(m_src, m_keyPointsImage, COLOR_GRAY2RGB);
 	int numLINE = m_lines.size();
@@ -560,7 +581,7 @@ void Corner::getAllLine()
 			int u0 = m_lines[i].m_points[j].x;
 			int v0 = m_lines[i].m_points[j].y;
 			//去畸变
-			m_keyPointsImage.at<Vec3b>(v0, u0) = Vec3b{ 47, 0, uchar(i * 10) };
+			m_keyPointsImage.at<Vec3b>(v0, u0) = Vec3b{ 47, 0, uchar(i * 5) };
 		}
 	}
 	for (size_t i = 0; i < numLINE; i++)
@@ -603,7 +624,7 @@ std::vector<LineData> Corner::classifyHorizonLines(Mat& src)
 				}
 
 				// 对LineData计算参数，同时根据LineData 的标签标记maskImage
-				if (horizonLine.m_points.size() > 150)
+				if (horizonLine.m_points.size() > 60)
 				{
 					horizonLine.m_label = label;
 					//标记maskImage
@@ -679,8 +700,8 @@ int Corner::updatePoint(const Mat& src, Mat& maskImage, Point2d& p, Point2d& nex
 	{
 		std::vector<Point2d> points5;
 		//扩大检测区域
-		int radius = 11;
-		int heng = 5;
+		int radius = 9;
+		int heng = 4;
 		Mat roi_uchar5{ src, Rect(u0 + 1, v0 - heng, radius ,  2 * heng + 1) };
 		Mat roi5;
 		roi_uchar5.convertTo(roi5, CV_64F);
@@ -742,8 +763,8 @@ int Corner::updatePoint(const Mat& src, Mat& maskImage, Point2d& p, Point2d& nex
 	else //邻域有多个点，说明此时在交点区域,扩大检测范围
 	{
 		std::vector<Point2d> points5;
-		int radius = 11;
-		int heng = 5;
+		int radius = 9;
+		int heng = 4;
 		Mat roi_uchar5{ src, Rect(u0 + 1, v0 - heng, radius, heng * 2 + 1) };
 		Mat roi5;
 		roi_uchar5.convertTo(roi5, CV_64F);
@@ -796,29 +817,307 @@ Mat findPlaneFuntction(Point2d p, Mat planeData)
 		double b1 = planeData.at<double>(i, 4);
 		double k2 = planeData.at<double>(i, 5);
 		double b2 = planeData.at<double>(i, 6);
-		if (k1 * 400 + b1 >= k2 * 400 + b2)
+		if (i != (row - 1) && i != 0)
 		{
-			if (p.y > k2 * p.x + b2 && p.y <= k1 * p.x + b1)
+			if ((p.y < (k1 * p.x + b1) && p.y >= (k2 * p.x + b2))
+				|| (p.y >= (k1 * p.x + b1) && p.y < (k2 * p.x + b2)))
+			{
 				return planeData.row(i);
+			}
+		}
+
+		if (i == 0)
+		{
+			if ((p.y < (k1 * p.x + b1) && p.y >= (k2 * p.x + b2))
+				|| (p.y >= (k1 * p.x + b1) && p.y < (k2 * p.x + b2)))
+			{
+				return planeData.row(i);
+			}
+			if (p.y >= (k1 * p.x + b1))
+			{
+				return planeData.row(i);
+			}
+		}
+
+		if (i == (row - 1)) // i = row -1
+		{
+			if ((p.y < (k1 * p.x + b1) && p.y >= (k2 * p.x + b2))
+				|| (p.y >= (k1 * p.x + b1) && p.y < (k2 * p.x + b2)))
+			{
+				return planeData.row(i);
+			}
+			if (p.y <= (k2 * p.x + b2))
+			{
+				return planeData.row(i);
+			}
+		}
+	}
+}
+
+Mat findVerticalPlaneFuntction(Point2d p, Mat planeData)
+{
+	int row = planeData.rows;
+	for (int i = 0; i < row; i++)
+	{
+		double k1 = planeData.at<double>(i, 3);
+		double b1 = planeData.at<double>(i, 4);
+		double k2 = planeData.at<double>(i, 5);
+		double b2 = planeData.at<double>(i, 6);
+		if (i != (row - 1) && i != 0) // i = 1 ~ row - 2
+		{
+			if ((p.x < (k1 * p.y + b1) && p.x >= (k2 * p.y + b2))
+				|| (p.x >= (k1 * p.y + b1) && p.x < (k2 * p.y + b2)))
+			{
+				return planeData.row(i);
+			}
+		}
+
+		if (i == 0)
+		{
+			if ((p.x < (k1 * p.y + b1) && p.x >= (k2 * p.y + b2))
+				|| (p.x >= (k1 * p.y + b1) && p.x < (k2 * p.y + b2)))
+			{
+				return planeData.row(i);
+			}
+			if (p.x >= (k1 * p.y + b1))
+			{
+				return planeData.row(i);
+			}
+		}
+
+		if (i == (row - 1)) // i = row -1
+		{
+			if ((p.x < (k1 * p.y + b1) && p.x >= (k2 * p.y + b2))
+				|| (p.x >= (k1 * p.y + b1) && p.x < (k2 * p.y + b2)))
+			{
+				return planeData.row(i);
+			}
+			if (p.x <= (k2 * p.y + b2))
+			{
+				return planeData.row(i);
+			}
+		}
+	}
+}
+
+bool cmpVerticalLineData(const LineData& a, const LineData& b)
+{
+	return a.m_label < b.m_label;
+}
+
+std::vector<LineData> Corner::classifyVerticalLines(Mat& src)
+{
+	std::vector<LineData> lines;//返回值
+	int rows = src.rows;//图像行数 1024
+	int cols = src.cols;//图像列数 1280
+	Mat maskImage = Mat::zeros(src.size(), CV_8UC1);
+	int label = 20;
+
+	//逐行遍历
+	for (int i = 0; i < rows; i++)
+	{
+		for (int j = 0; j < cols; j++)
+		{
+			if (src.at<uchar>(i, j) != 0 && maskImage.at<uchar>(i, j) == 0)
+			{
+				maskImage.at<uchar>(i, j) == uchar(150);
+				LineData horizonLine;
+				int flag;
+				Point2d p = Point2d{ double(j), double(i) };
+				horizonLine.m_points.push_back(p);
+				Point2d nextPoint;
+				while (updateColsPoint(src, maskImage, p, nextPoint))
+				{
+					horizonLine.m_points.push_back(nextPoint);
+					//更新p点坐标
+					p.x = nextPoint.x;
+					p.y = nextPoint.y;
+				}
+
+				// 对LineData计算参数，同时根据LineData 的标签标记maskImage
+				if (horizonLine.m_points.size() > 70)
+				{
+					horizonLine.m_label = label;
+					//标记maskImage
+					for (int k = 0; k < horizonLine.m_points.size(); k++)
+					{
+						int u = horizonLine.m_points[k].x;
+						int v = horizonLine.m_points[k].y;
+					}
+					fitPoints(horizonLine);//计算直线的截距与斜率
+					double normalK = horizonLine.m_k;
+					double normalB = horizonLine.m_b;
+
+					//将直线方程转换为 x = y/k - b/k
+					horizonLine.m_k = 1 / normalK;
+					horizonLine.m_b = -normalB / normalK;
+					lines.push_back(horizonLine);
+					if (lines.size() == 20)
+					{
+						break;
+					}
+					label++;
+				}
+			}
+		}
+		if (lines.size() == 20)
+		{
+			break;
+		}
+	}
+
+	// 根据 b 值对各直线排序，对label进行更新， b 的值最小label为1，以此递增
+	std::vector<float> vlabel;
+	for (size_t i = 0; i < lines.size(); i++)
+	{
+		vlabel.push_back(lines[i].m_b);
+	}
+	sort(vlabel.begin(), vlabel.end());
+
+	//根据横坐标进行排序
+	for (size_t i = 0; i < lines.size(); i++)
+	{
+		std::vector<float>::iterator iter;
+		iter = std::find(vlabel.begin(), vlabel.end(), lines[i].m_b);
+		int pos = iter - vlabel.begin();
+		lines[i].m_label = pos + 20;
+		sort(lines[i].m_points.begin(), lines[i].m_points.end(), cmp);
+	}
+	sort(lines.begin(), lines.end(), cmpVerticalLineData);
+	return lines;
+}
+
+int Corner::updateColsPoint(const Mat& src, Mat& maskImage, Point2d& p, Point2d& nextPoint)
+{
+	//向纵向搜寻
+	double u0 = p.x;
+	double v0 = p.y;
+	//标记该点
+	if (maskImage.at<uchar>(v0, u0) == 0) maskImage.at<uchar>(v0, u0) = (uchar)150;
+	std::vector<Point2d> points;
+	Mat roi_uchar{ src, Rect(u0 - 1, v0 + 1, 3, 3) };
+	Mat roi;
+	roi_uchar.convertTo(roi, CV_64F);
+	int n_points = 0;
+	//先检测3邻域内的点
+	for (int i = 0; i < 3; i++)
+	{
+		for (int j = 0; j < 3; j++)
+		{
+			//标记该点
+			if (maskImage.at<uchar>(v0 + 1 + j, u0 - 1 + i) == 0) maskImage.at<uchar>(v0 + 1 + j, u0 - 1 + i) = (uchar)150;
+			if (roi.at<double>(j, i) != 0)
+			{
+				n_points++;
+				points.push_back(Point2d{ u0 - 1 + i , v0 + 1 + j });
+			}
+		}
+	}
+
+	if (n_points == 0)//两种情况：（1）整条直线检测结束 （2）交点初漏检测
+	{
+		std::vector<Point2d> points5;
+		//扩大检测区域
+		Mat roi_uchar5{ src, Rect(u0 - 5, v0 + 1, 11 ,  11) };
+		Mat roi5;
+		roi_uchar5.convertTo(roi5, CV_64F);
+		int n_5 = 0;//五邻域内点
+		for (int i = 0; i < 11; i++)
+		{
+			for (int j = 0; j < 11; j++)
+			{
+				if (maskImage.at<uchar>(v0 + 1 + j, u0 - 5 + i) == 0) maskImage.at<uchar>(v0 + 1 + j, u0 - 5 + i) = (uchar)150;
+				maskImage.at<uchar>(v0, u0) = (uchar)255;
+				if (roi5.at<double>(j, i) != 0)
+				{
+					n_5++;
+					points5.push_back(Point2d{ u0 - 5 + i , v0 + 1 + j });
+				}
+			}
+		}
+		if (n_5 != 0)
+		{
+			std::vector<int> v;
+			int maxY = 0;
+			//寻找邻域内具有最大横坐标的那个点，并将该点作为nextPoint
+			for (int i = 0; i < n_5; i++)
+			{
+				v.push_back(points5[i].x);
+				if (points5[i].x > maxY) maxY = points5[i].x;
+			}
+			for (int i = 0; i < n_5; i++)
+			{
+				if (points5[i].x == maxY)
+				{
+					nextPoint.x = points5[i].x;
+					nextPoint.y = points5[i].y;
+					maskImage.at<uchar>(nextPoint.y, nextPoint.x) = (uchar)255;
+					maskImage.at<uchar>(v0, u0) = (uchar)255;
+
+					return 1;
+				}
+			}
 		}
 		else
 		{
-			if (p.y <= k2 * p.x + b2 && p.y > k1 * p.x + b1)
-				return planeData.row(i);
+			return 0;
 		}
-		if (i == 0)
+	}
+	else if (n_points == 1)//最常见情况,直接将非零点作为nextPoint
+	{
+		if (maskImage.at<uchar>(points[0].y, points[0].x) == 255)
 		{
-			if (p.y < k1 * p.x + b1)
+			return 0;
+		}
+		nextPoint.x = points[0].x;
+		nextPoint.y = points[0].y;
+		maskImage.at<uchar>(nextPoint.y, nextPoint.x) = (uchar)255;
+		maskImage.at<uchar>(v0, u0) = (uchar)255;
+
+		return 1;
+	}
+	else //邻域有多个点，说明此时在交点区域,扩大检测范围
+	{
+		std::vector<Point2d> points5;
+		Mat roi_uchar5{ src, Rect(u0 - 5, v0 + 1, 11, 11) };
+		Mat roi5;
+		roi_uchar5.convertTo(roi5, CV_64F);
+		int n_5 = 0;//五邻域内点
+		for (int i = 0; i < 11; i++)
+		{
+			for (int j = 0; j < 11; j++)
 			{
-				return planeData.row(i);
+				if (maskImage.at<uchar>(v0 + 1 + j, u0 - 5 + i) == 255)
+				{
+					return 0;
+				}
+				if (maskImage.at<uchar>(v0 + 1 + j, u0 - 5 + i) == 0) maskImage.at<uchar>(v0 + 1 + j, u0 - 5 + i) = (uchar)150;
+				if (roi5.at<double>(j, i) != 0)
+				{
+					n_5++;
+					points5.push_back(Point2d{ u0 - 5 + i , v0 + 1 + j });
+				}
 			}
 		}
-		if (i == row - 1)
+		std::vector<int> v;
+		int maxY = 0;
+		//找到横坐标最大的那个点，作为nextPoint
+		for (int i = 0; i < n_5; i++)
 		{
-			if (p.y > k2 * p.x + b2)
+			v.push_back(points5[i].x);
+			if (points5[i].x > maxY) maxY = points5[i].x;
+		}
+
+		for (int i = 0; i < n_5; i++)
+		{
+			if (points5[i].x == maxY)
 			{
-				return planeData.row(i);
+				nextPoint.x = points5[i].x;
+				nextPoint.y = points5[i].y;
+				maskImage.at<uchar>(nextPoint.y, nextPoint.x) = (uchar)255;
+				maskImage.at<uchar>(v0, u0) = (uchar)255;
 			}
 		}
+		return 1;
 	}
 }

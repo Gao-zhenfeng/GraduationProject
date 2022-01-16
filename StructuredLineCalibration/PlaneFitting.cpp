@@ -157,11 +157,11 @@ void LinePlane::planeFitting()
 		yi.at<double>(0, i) = m_points[i].y;
 		zi.at<double>(0, i) = m_points[i].z;
 	}
-	Mat sumXi2 = xi * xi.t();
-	Mat sumXiYi = xi * yi.t();
-	Mat sumYi2 = yi * yi.t();
-	Mat sumXiZi = xi * zi.t();
-	Mat sumYiZi = yi * zi.t();
+	Mat sumXi2 = xi * xi.t();// xi * xi
+	Mat sumXiYi = xi * yi.t();// xi * yi
+	Mat sumYi2 = yi * yi.t();// yi * yi
+	Mat sumXiZi = xi * zi.t();//xi * zi
+	Mat sumYiZi = yi * zi.t();// yi * zi
 
 	double sumXi = sum(xi)[0];
 	double sumYi = sum(yi)[0];
@@ -186,7 +186,7 @@ void LinePlane::planeFitting()
 	//cout << "b:\n" << b << endl;
 
 	//solve(A, b, coeffient, DECOMP_SVD);
-	cv::solve(A, b, coeffient, DECOMP_QR);
+	cv::solve(A, b, this->coeffient, DECOMP_SVD);
 }
 
 // 将 { x y z} 以此顺序打印出来

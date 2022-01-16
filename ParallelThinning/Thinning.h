@@ -41,3 +41,7 @@ std::vector<LineData> getLineData(std::vector<Point2f>keyPoints, float k);
 
 std::vector<LineData> classifyHorizonLines(Mat& src);
 int updatePoint(const Mat& src, Mat& maskImage, Point2d& p, Point2d& nextPoint);
+
+bool cmpVerticalLineData(const LineData& a, const LineData& b);
+std::vector<LineData> classifyVerticalLines(Mat& src);
+int updateColsPoint(const Mat& src, Mat& maskImage, Point2d& p, Point2d& nextPoint);

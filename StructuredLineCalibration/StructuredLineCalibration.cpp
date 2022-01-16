@@ -56,9 +56,21 @@ using std::cout;
 
 */
 
+bool cmpString(const cv::String& s1, const cv::String& s2)
+{
+	int posS1Dot = s1.find_last_of('.');
+	int posS2Dot = s2.find_last_of('.');
+	int posS1L = s1.find_last_of('l');
+	int posS2L = s2.find_last_of('l');
+	int lengthS1 = posS1Dot - posS1L - 1;
+	int lengthS2 = posS2Dot - posS1L - 1;
+	string intS1 = s1.substr((size_t)posS1L + 1, lengthS1);
+	string intS2 = s2.substr((size_t)posS2L + 1, lengthS2);
+	return std::stoi(intS1) < std::stoi(intS2);
+}
 int main()
 {
-	string rootpath = "../Data/20210526/";
+	string rootpath = "../Data/0.5mm/";
 	FileStorage fs{ rootpath + "camera_coeffs.xml", FileStorage::READ };
 	FileStorage fs2{ rootpath + "LinePlaneData.yml", FileStorage::WRITE };
 	Matx33d M;//相机内参矩阵
@@ -76,21 +88,24 @@ int main()
 
 	std::vector<cv::String> images;
 
-	std::string path = rootpath + "*.bmp";
+	std::string path = rootpath + "light/" + "*.bmp";
 
 	// 使用glob函数读取所有图像的路径
 	cv::glob(path, images);
+	sort(images.begin(), images.end(), cmpString);
 	std::vector<Corner> allImageCorner;
 	for (size_t i = 0; i < images.size(); i++)
 	{
 		allImageCorner.push_back(Corner{ images[i] , M, distCoeffs });
 		allImageCorner[i].getAllLine();
+		allImageCorner[i].getCorner();
 		//m0作验证用
 		Mat m0 = allImageCorner[i].m_keyPointsImage;
+		Mat m1 = allImageCorner[i].m_skeletonImage;
 	}
 
 	size_t numOfImage = allImageCorner.size(); //n张图片
-	size_t numOfLines = allImageCorner[0].m_lines.size(); // 每张图片横向光条数量： 20
+	size_t numOfLines = allImageCorner[0].m_linePoints.size(); // 每张图片横向光条数量： 20
 	fs2 << "planes number" << int(numOfLines);
 
 	// 计算光平面上的各点的三维坐标和光平面的参数，将相机内参、畸变参数、光平面参数写入XML文件
@@ -106,7 +121,7 @@ int main()
 	//		Matx13d t = Matx13d{ translation_vectors.at<double>(j, 0),
 	//								translation_vectors.at<double>(j, 1),
 	//									translation_vectors.at<double>(j, 2) };
-	//		lp.addPoints(allImageCorner[j].m_lines[i], M, distCoeffs, R, t);
+	//		lp.addPoints(allImageCorner[j].m_linePoints[i], M, distCoeffs, R, t);
 	//	}
 	//	lp.planeFitting();
 	//	fs2 << "Lineplane" + std::to_string(i) << lp.coeffient;
@@ -117,10 +132,10 @@ int main()
 	//新方法，计算相邻两张图片
 	for (size_t i = 0; i < numOfLines; i++)
 	{
-		LinePlane lp;
 		Mat lpcoeffient;
 		for (size_t j = 0; j < numOfImage - 1; j++)
 		{
+			LinePlane lp;
 			// 每张图片的旋转矩阵和平移矩阵
 			Matx13d R = Matx13d{ rotation_matrix.at<double>(j, 0),
 										rotation_matrix.at<double>(j, 1),
@@ -128,19 +143,19 @@ int main()
 			Matx13d t = Matx13d{ translation_vectors.at<double>(j, 0),
 									translation_vectors.at<double>(j, 1),
 										translation_vectors.at<double>(j, 2) };
-			lp.addPoints(allImageCorner[j].m_lines[i], M, distCoeffs, R, t);
+			lp.addPoints(allImageCorner[j].m_linePoints[i], M, distCoeffs, R, t);
 			// 相邻两张图
-			lp.addPoints(allImageCorner[j + 1].m_lines[i], M, distCoeffs, R, t);
+			lp.addPoints(allImageCorner[j + 1].m_linePoints[i], M, distCoeffs, R, t);
 			lp.planeFitting();
 
 			Mat tempCoeffient = Mat::zeros(1, 7, CV_64F);
 			tempCoeffient.at<double>(0, 0) = lp.coeffient.at<double>(0, 0);
 			tempCoeffient.at<double>(0, 1) = lp.coeffient.at<double>(1, 0);
 			tempCoeffient.at<double>(0, 2) = lp.coeffient.at<double>(2, 0);
-			tempCoeffient.at<double>(0, 3) = allImageCorner[j].m_lines[i].m_k;
-			tempCoeffient.at<double>(0, 4) = allImageCorner[j].m_lines[i].m_b;
-			tempCoeffient.at<double>(0, 5) = allImageCorner[j + 1].m_lines[i].m_k;
-			tempCoeffient.at<double>(0, 6) = allImageCorner[j + 1].m_lines[i].m_b;
+			tempCoeffient.at<double>(0, 3) = allImageCorner[j].m_linePoints[i].m_k;
+			tempCoeffient.at<double>(0, 4) = allImageCorner[j].m_linePoints[i].m_b;
+			tempCoeffient.at<double>(0, 5) = allImageCorner[j + 1].m_linePoints[i].m_k;
+			tempCoeffient.at<double>(0, 6) = allImageCorner[j + 1].m_linePoints[i].m_b;
 
 			if (lpcoeffient.empty())
 			{
@@ -151,7 +166,8 @@ int main()
 				vconcat(lpcoeffient, tempCoeffient, lpcoeffient);
 			}
 		}
-		//cout << "Lineplane" + std::to_string(i) << "\n" << lpcoeffient;
+		cout << "Lineplane" + std::to_string(i) << "\n" << lpcoeffient << endl;
+		cout << lpcoeffient.rows << endl;
 		fs2 << "Lineplane" + std::to_string(i) << lpcoeffient;
 	}
 	fs2.release();
@@ -173,7 +189,7 @@ int main()
 									translation_vectors.at<double>(i, 1),
 										translation_vectors.at<double>(i, 2) };
 			// 写入（u, v, xindex, yindex, x, y, z)
-			imagePlane.addPointsAndPrint(allImageCorner[i].m_lines[j], M, distCoeffs, R, t, out1);
+			imagePlane.addPointsAndPrint(allImageCorner[i].m_linePoints[j], M, distCoeffs, R, t, out1);
 		}
 		//imagePlane.printTXT(filename);
 	}
